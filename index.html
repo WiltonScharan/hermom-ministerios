@@ -196,6 +196,7 @@ body.adm .mcard:hover{box-shadow:var(--sh);border-color:var(--border);transform:
 .md-bg{font-size:.72rem;padding:2px 8px;border-radius:9px}
 .md-bg.sim{background:var(--greenl);color:var(--green)}
 .md-bg.nao{background:var(--grayl);color:var(--gray)}
+.md-outros{font-size:.68rem;color:var(--gray);margin-top:2px;font-style:italic}
 .mc{cursor:pointer}
 .mc:hover{box-shadow:var(--sh);transform:translateY(-1px);transition:all .15s}
 /* Roll-call (presença) styles */
@@ -319,6 +320,7 @@ body.adm #admBtn{display:none!important}
       </div>
     </div>
     <div class="pt2">
+      <button class="btn btn-s btn-sm" id="pBackBtn" onclick="pBack()" style="display:none">← Voltar</button>
       <select class="fsel ms" id="pMinSel">
         <option value="">— Selecione o ministério —</option>
         <option value="__all__">Todos os ministérios (visão macro)</option>
@@ -328,6 +330,7 @@ body.adm #admBtn{display:none!important}
       </select>
       <button class="btn btn-p btn-sm" onclick="pRefresh()">Filtrar</button>
       <button class="btn btn-s btn-sm" onclick="pClearFilter()">Limpar filtro</button>
+      <button class="btn btn-gold btn-sm adm-only" onclick="openManageMeetings()">Gerenciar reuniões</button>
       <button class="btn btn-d btn-sm adm-only" id="pDelMeetBtn" onclick="deleteMeeting()" style="display:none">Excluir reunião</button>
     </div>
     <div id="pContent">
@@ -468,6 +471,31 @@ body.adm #admBtn{display:none!important}
   </div>
 </div>
 
+<!-- MODAL: Gerenciar Reuniões -->
+<div class="ov" id="ovManageMeets">
+  <div class="mod lg">
+    <h3>Gerenciar Reuniões</h3>
+    <p class="sub">Aqui você pode editar a data ou excluir qualquer reunião registrada.</p>
+    <div id="mmtList" style="max-height:420px;overflow-y:auto"></div>
+    <div class="mact">
+      <button class="btn btn-s" onclick="closeOv('ovManageMeets')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar Reunião (nova data) -->
+<div class="ov" id="ovEditMeet">
+  <div class="mod">
+    <h3>Editar Reunião</h3>
+    <p class="sub">Altere a data da reunião. O histórico de presença é mantido.</p>
+    <div class="fld"><label>Nova data</label><input type="date" id="emtDate"></div>
+    <div class="mact">
+      <button class="btn btn-s" onclick="closeOv('ovEditMeet')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveEditMeeting()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Escolher Ministério para marcar presença -->
 <div class="ov" id="ovMeetMin">
   <div class="mod">
@@ -528,7 +556,8 @@ const S = {
   cellInfo: null,
   listeners: {},
   seeded: false,
-  admin: false
+  admin: false,
+  presHistory: []
 };
 
 // ============================== UTILS ==============================
@@ -608,12 +637,28 @@ function cellHtml(val, clickable, minKey, meetKey, pKey){
   return `<span class="ss2 e ${nc}" ${onc}>?</span>`;
 }
 
-function calcMeetStats(presData){
+function calcMeetStats(presData,ministryMembers){
+  // Cálculo correto: todos os membros do ministério contam como elegíveis,
+  // exceto aqueles marcados como "nao_membro" (ainda não era membro na época).
+  // Presentes = quem foi marcado como "presente".
+  const pres=presData||{};
+  const members=ministryMembers||{};
   let p=0,elig=0;
-  Object.values(presData||{}).forEach(v=>{
-    const {status}=decodeStatus(v);
+  const seen=new Set();
+  Object.keys(members).forEach(pk=>{
+    seen.add(pk);
+    const {status}=decodeStatus(pres[pk]);
+    if(status==='nao_membro') return;
+    elig++;
+    if(status==='presente') p++;
+  });
+  // Também contabiliza pessoas com registro de presença que não estão mais no ministério
+  Object.keys(pres).forEach(pk=>{
+    if(seen.has(pk)) return;
+    const {status}=decodeStatus(pres[pk]);
     if(!status||status==='nao_membro') return;
-    elig++; if(status==='presente') p++;
+    elig++;
+    if(status==='presente') p++;
   });
   return {present:p,eligible:elig};
 }
@@ -640,10 +685,25 @@ window.ST=function(tab,btn){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
   document.getElementById('tab-'+tab).classList.add('on');
   btn.classList.add('on');
+  // Limpar filtros automaticamente ao entrar em cada aba
+  if(tab==='ministerios'){
+    const mi=document.getElementById('minSearch'); if(mi) mi.value='';
+    renderMins();
+  }
+  if(tab==='membros'){
+    const ms=document.getElementById('mSearch'); if(ms) ms.value='';
+    const mf=document.getElementById('mFilter'); if(mf) mf.value='';
+    const mb=document.getElementById('mBadgeFilter'); if(mb) mb.value='';
+    renderMembros();
+  }
+  if(tab==='presenca'){
+    // Limpa filtro ao entrar na aba Reuniões
+    const psel=document.getElementById('pMinSel'); if(psel) psel.value='';
+    const pmt=document.getElementById('pMeetSel'); if(pmt) pmt.value='__all__';
+    S.pMin=''; S.pMeet='__all__'; S.presHistory=[];
+    pRefresh();
+  }
   if(tab==='dashboard') renderDash();
-  if(tab==='ministerios') renderMins();
-  if(tab==='membros') renderMembros();
-  if(tab==='presenca') pRefresh();
 };
 
 function showOv(id){ document.getElementById(id).classList.add('on'); }
@@ -871,6 +931,8 @@ window.pRefresh=function(){
   S.pMeet=document.getElementById('pMeetSel').value;
   const delBtn=document.getElementById('pDelMeetBtn');
   if(delBtn) delBtn.style.display=(S.pMeet && S.pMeet!=='__all__' && S.admin)?'inline-block':'none';
+  const backBtn=document.getElementById('pBackBtn');
+  if(backBtn) backBtn.style.display=S.presHistory.length>0?'inline-block':'none';
   const ct=document.getElementById('meet-ct');
   if(ct) ct.textContent=Object.keys(S.meetings).length+' registradas';
   renderPresenca();
@@ -879,7 +941,9 @@ window.pClearFilter=function(){
   document.getElementById('pMinSel').value='';
   document.getElementById('pMeetSel').value='__all__';
   S.pMin=''; S.pMeet='__all__';
+  S.presHistory=[];
   document.getElementById('pDelMeetBtn').style.display='none';
+  document.getElementById('pBackBtn').style.display='none';
   renderPresenca();
 };
 window.deleteMeeting=function(){
@@ -925,16 +989,12 @@ function renderDash(){
   document.getElementById('d-total').textContent=members.length;
   document.getElementById('d-mins').textContent=minKeys.length;
   document.getElementById('d-reun').textContent=meetings.length;
-  // Taxa
+  // Taxa geral: soma de presenças em todos os ministerios × reuniões
   let tp=0,te=0;
   meetings.forEach(mk=>{
-    const md=S.presencas[mk]||{};
-    Object.values(md).forEach(minData=>{
-      Object.values(minData||{}).forEach(v=>{
-        const {status}=decodeStatus(v);
-        if(!status||status==='nao_membro') return;
-        te++; if(status==='presente') tp++;
-      });
+    Object.entries(S.mins).forEach(([minKey,mv])=>{
+      const r=calcMeetStats((S.presencas[mk]||{})[minKey]||{},mv.membros);
+      tp+=r.present; te+=r.eligible;
     });
   });
   document.getElementById('d-taxa').textContent=te>0?Math.round((tp/te)*100)+'%':'—';
@@ -942,16 +1002,13 @@ function renderDash(){
   const counts=Object.entries(S.mins).map(([k,v])=>[v.nome,Object.keys(v.membros||{}).length]).sort((a,b)=>b[1]-a[1]);
   const maxC=counts[0]?.[1]||1;
   document.getElementById('d-mbars').innerHTML=counts.map(([nm,c])=>`<div class="br"><div class="blbl" title="${esc(nm)}">${esc(nm)}</div><div class="btr"><div class="bf" style="width:${(c/maxC)*100}%"></div></div><div class="bn">${c}</div></div>`).join('')||'<div style="color:var(--gray);font-size:.8rem">Sem dados</div>';
-  // Presença bars
+  // Presença bars por ministério
   const pctByMin={};
   Object.entries(S.mins).forEach(([mk,mv])=>{
     let p=0,e=0;
     meetings.forEach(meetKey=>{
-      Object.values((S.presencas[meetKey]||{})[mk]||{}).forEach(v=>{
-        const {status}=decodeStatus(v);
-        if(!status||status==='nao_membro') return;
-        e++; if(status==='presente') p++;
-      });
+      const r=calcMeetStats((S.presencas[meetKey]||{})[mk]||{},mv.membros);
+      p+=r.present; e+=r.eligible;
     });
     if(e>0) pctByMin[mv.nome]=Math.round((p/e)*100);
   });
@@ -960,15 +1017,12 @@ function renderDash(){
     const cls=v>=80?'hi':v>=60?'mi':'lo';
     return `<div class="br"><div class="blbl" title="${esc(nm)}">${esc(nm)}</div><div class="btr"><div class="bf ${cls}" style="width:${v}%"></div></div><div class="bn">${v}%</div></div>`;
   }).join('')||'<div style="color:var(--gray);font-size:.8rem">Nenhuma reunião registrada ainda</div>';
-  // Trend
+  // Trend: taxa global por reunião
   const trend=meetings.map(mk=>{
     let p=0,e=0;
-    Object.values(S.presencas[mk]||{}).forEach(mm=>{
-      Object.values(mm||{}).forEach(v=>{
-        const {status}=decodeStatus(v);
-        if(!status||status==='nao_membro') return;
-        e++; if(status==='presente') p++;
-      });
+    Object.entries(S.mins).forEach(([minKey,mv])=>{
+      const r=calcMeetStats((S.presencas[mk]||{})[minKey]||{},mv.membros);
+      p+=r.present; e+=r.eligible;
     });
     return e>0?Math.round((p/e)*100):null;
   });
@@ -1014,7 +1068,7 @@ function renderDash(){
 }
 
 // ============================== MINISTÉRIOS ==============================
-function renderMins(){
+window.renderMins=function(){
   const meetings=sortMeets(Object.keys(S.meetings));
   const q=(document.getElementById('minSearch')?.value||'').toLowerCase().trim();
   const entries=Object.entries(S.mins).filter(([,mv])=>{
@@ -1027,11 +1081,8 @@ function renderMins(){
     const count=membros.length;
     let p=0,e=0;
     meetings.forEach(meetKey=>{
-      Object.values((S.presencas[meetKey]||{})[mk]||{}).forEach(v=>{
-        const {status}=decodeStatus(v);
-        if(!status||status==='nao_membro') return;
-        e++; if(status==='presente') p++;
-      });
+      const r=calcMeetStats((S.presencas[meetKey]||{})[mk]||{},mv.membros);
+      p+=r.present; e+=r.eligible;
     });
     const taxa=e>0?Math.round((p/e)*100):null;
     const sortedMembros=sortMemberEntries(Object.entries(mv.membros||{})).map(([,m])=>m);
@@ -1057,6 +1108,18 @@ function renderMins(){
   document.getElementById('minGrid').innerHTML=html||'<div class="ldg">Nenhum ministério cadastrado</div>';
 }
 
+function otherMinsOfName(nome,currentMk){
+  const pkClean=sk(nome);
+  const result=[];
+  Object.entries(S.mins).forEach(([mk,mv])=>{
+    if(mk===currentMk) return;
+    if(!mv.membros) return;
+    const has=mv.membros[pkClean] || Object.values(mv.membros).some(m=>sk(m.nome||'')===pkClean);
+    if(has) result.push(mv.nome);
+  });
+  return result.sort((a,b)=>a.localeCompare(b,'pt',{sensitivity:'base'}));
+}
+
 window.openMinDetail=function(mk){
   const mv=S.mins[mk];
   if(!mv) return;
@@ -1068,7 +1131,11 @@ window.openMinDetail=function(mk){
   const membros=sorted.filter(([,m])=>!m.role||m.role==='membro');
   const renderGroup=(arr)=>arr.map(([,m])=>{
     const bg=m.badge?'<span class="md-bg sim">● Crachá</span>':'<span class="md-bg nao">sem crachá</span>';
-    return `<div class="md-row"><div class="md-nm">${esc(m.nome)}</div>${bg}</div>`;
+    const outros=otherMinsOfName(m.nome,mk);
+    const outrosStr=outros.length
+      ? `<div class="md-outros">também em: ${esc(outros.join(' · '))}</div>`
+      : '';
+    return `<div class="md-row"><div><div class="md-nm">${esc(m.nome)}</div>${outrosStr}</div>${bg}</div>`;
   }).join('');
   let html='';
   if(lideres.length) html+=`<div class="md-sec">Líder${lideres.length>1?'es':''} (${lideres.length})</div>${renderGroup(lideres)}`;
@@ -1397,12 +1464,9 @@ function renderSingleMeeting(minKey,membros,meetKey,canEdit){
   const meetLabel=S.meetings[meetKey]?.data||keyToDate(meetKey);
   const keys=new Set([...Object.keys(membros),...Object.keys(pData)]);
   const sortedKeys=sortMemberEntries([...keys].map(k=>[k,membros[k]||{nome:k.replace(/_/g,' '),role:'membro'}])).map(([k])=>k);
-  let p=0,e=0;
-  sortedKeys.forEach(pk=>{
-    const v=pData[pk];
-    const {status}=decodeStatus(v);
-    if(status&&status!=='nao_membro'){e++; if(status==='presente') p++;}
-  });
+  // Cálculo correto: todo membro conta como elegível exceto se marcado como nao_membro
+  const stats=calcMeetStats(pData,membros);
+  const p=stats.present, e=stats.eligible;
   const taxa=e>0?Math.round((p/e)*100):null;
 
   if(canEdit){
@@ -1483,7 +1547,7 @@ function renderAllMeetings(minKey,membros,meetings,canEdit){
   meetings.forEach(mk=>{ Object.keys((S.presencas[mk]||{})[minKey]||{}).forEach(pk=>keys.add(pk)); });
   const sorted=sortMemberEntries([...keys].map(k=>[k,membros[k]||{nome:k.replace(/_/g,' '),role:'membro'}])).map(([k])=>k);
   const meetCols=meetings.map(mk=>`<th class="c" style="font-size:.68rem">${displayDate(mk)}<br><span style="opacity:.6">${yearOf(mk)}</span></th>`).join('');
-  const totals=meetings.map(mk=>calcMeetStats((S.presencas[mk]||{})[minKey]||{}));
+  const totals=meetings.map(mk=>calcMeetStats((S.presencas[mk]||{})[minKey]||{},(S.mins[minKey]||{}).membros));
   let rows='';
   sorted.forEach(pk=>{
     const m=membros[pk]||{nome:pk.replace(/_/g,' '),role:'membro',cor:'normal'};
@@ -1507,27 +1571,38 @@ function renderAllMeetings(minKey,membros,meetings,canEdit){
 function renderMacro(meetings,canEdit){
   const meetCols=meetings.map(mk=>`<th class="c" style="font-size:.68rem">${displayDate(mk)}<br><span style="opacity:.6">${yearOf(mk)}</span></th>`).join('');
   let rows='';
-  Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'')).forEach(([mk,mv])=>{
+  Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'})).forEach(([mk,mv])=>{
     const cells=meetings.map(meetKey=>{
-      const pd=(S.presencas[meetKey]||{})[mk]||{};
-      let p=0,e=0;
-      Object.values(pd).forEach(v=>{ const {status}=decodeStatus(v); if(!status||status==='nao_membro') return; e++; if(status==='presente') p++; });
-      const v=pct(p,e);
+      const r=calcMeetStats((S.presencas[meetKey]||{})[mk]||{},mv.membros);
+      const v=pct(r.present,r.eligible);
       const nav=v!=null?`onclick="navToDetail('${mk}','${meetKey}')"`:' ';
       return `<td><span class="mc2 ${pctClass(v)}" ${nav}>${v!=null?v+'%':'—'}</span></td>`;
     }).join('');
     let tp=0,te=0;
-    meetings.forEach(mkk=>{ Object.values((S.presencas[mkk]||{})[mk]||{}).forEach(v=>{ const {status}=decodeStatus(v); if(!status||status==='nao_membro') return; te++; if(status==='presente') tp++; }); });
+    meetings.forEach(mkk=>{
+      const r=calcMeetStats((S.presencas[mkk]||{})[mk]||{},mv.membros);
+      tp+=r.present; te+=r.eligible;
+    });
     rows+=`<tr><td>${esc(mv.nome)}</td>${cells}<td>${pctHtml(pct(tp,te))}</td></tr>`;
   });
   document.getElementById('pContent').innerHTML=`<div class="mac-w"><table class="mac"><thead><tr><th class="lc">Ministério</th>${meetCols}<th class="c">Geral</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 window.navToDetail=function(minKey,meetKey){
+  // Guardar estado atual no histórico antes de navegar
+  S.presHistory.push({pMin:S.pMin,pMeet:S.pMeet});
   document.getElementById('pMinSel').value=minKey;
   document.getElementById('pMeetSel').value=meetKey;
   S.pMin=minKey; S.pMeet=meetKey;
-  renderPresenca();
+  pRefresh();
+};
+window.pBack=function(){
+  if(!S.presHistory.length) return;
+  const prev=S.presHistory.pop();
+  document.getElementById('pMinSel').value=prev.pMin||'';
+  document.getElementById('pMeetSel').value=prev.pMeet||'__all__';
+  S.pMin=prev.pMin||''; S.pMeet=prev.pMeet||'__all__';
+  pRefresh();
 };
 
 // ============================== CELL EDITOR ==============================
@@ -1593,6 +1668,82 @@ window.createMeeting=async function(){
   }catch(e){toast('Erro: '+e.message,'er');}
 };
 
+// ============================== GERENCIAR REUNIÕES ==============================
+window.openManageMeetings=function(){
+  if(!S.admin){ toast('Apenas administradores','er'); return; }
+  const sorted=sortMeets(Object.keys(S.meetings));
+  const rows=sorted.map(mk=>{
+    const lbl=S.meetings[mk]?.data||mk;
+    // Contar presenças deste meeting
+    let totalPres=0, totalElig=0;
+    Object.entries(S.mins).forEach(([minKey,mv])=>{
+      const r=calcMeetStats((S.presencas[mk]||{})[minKey]||{},mv.membros);
+      totalPres+=r.present; totalElig+=r.eligible;
+    });
+    return `<div class="md-row" style="padding:12px 14px">
+      <div>
+        <div class="md-nm" style="font-size:.95rem">${esc(lbl)}</div>
+        <div style="font-size:.72rem;color:var(--gray);margin-top:2px">${totalPres} presentes de ${totalElig} elegíveis</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-s btn-sm" onclick="openEditMeeting('${esc(mk)}')">Editar</button>
+        <button class="btn btn-d btn-sm" onclick="deleteMeetingFromList('${esc(mk)}')">Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('mmtList').innerHTML=rows||'<div style="padding:20px;text-align:center;color:var(--gray)">Nenhuma reunião cadastrada</div>';
+  showOv('ovManageMeets');
+};
+window.openEditMeeting=function(mk){
+  const m=S.meetings[mk];
+  if(!m) return;
+  const parts=(m.data||'').split('/');
+  if(parts.length===3){
+    document.getElementById('emtDate').value=`${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  S._editMeetingKey=mk;
+  closeOv('ovManageMeets');
+  showOv('ovEditMeet');
+};
+window.saveEditMeeting=async function(){
+  const mk=S._editMeetingKey;
+  if(!mk||!S.db) return;
+  const dv=document.getElementById('emtDate').value;
+  if(!dv){ toast('Selecione uma data','er'); return; }
+  const [y,mo,d]=dv.split('-');
+  const newLabel=`${d}/${mo}/${y}`;
+  const newKey=`${d}${mo}${y}`;
+  try{
+    const {ref,set,get,remove,update}=fbMods;
+    if(newKey===mk){
+      // Só atualiza o label
+      await set(ref(S.db,`hermom/reunioes/${mk}/data`),newLabel);
+    } else {
+      if(S.meetings[newKey]){ toast('Já existe reunião nessa nova data','er'); return; }
+      // Copia dados para nova key
+      await set(ref(S.db,`hermom/reunioes/${newKey}`),{data:newLabel,criadoEm:S.meetings[mk]?.criadoEm||Date.now()});
+      const presSnap=await get(ref(S.db,`hermom/presencas/${mk}`));
+      if(presSnap.exists()) await set(ref(S.db,`hermom/presencas/${newKey}`),presSnap.val());
+      await remove(ref(S.db,`hermom/reunioes/${mk}`));
+      await remove(ref(S.db,`hermom/presencas/${mk}`));
+    }
+    toast('Reunião atualizada','ok');
+    closeOv('ovEditMeet');
+  }catch(e){toast('Erro: '+e.message,'er');}
+};
+window.deleteMeetingFromList=function(mk){
+  const lbl=S.meetings[mk]?.data||mk;
+  confirmDialog('Excluir reunião',`Excluir a reunião de ${lbl}? Todas as presenças serão apagadas permanentemente.`,async()=>{
+    try{
+      const {ref,remove}=fbMods;
+      await remove(ref(S.db,`hermom/reunioes/${mk}`));
+      await remove(ref(S.db,`hermom/presencas/${mk}`));
+      toast('Reunião excluída','ok');
+      closeOv('ovManageMeets');
+    }catch(e){toast('Erro: '+e.message,'er');}
+  });
+};
+
 // ============================== ESCOLHER MINISTÉRIO PARA PRESENÇA ==============================
 window.showMeetMinPicker=function(meetKey){
   if(!S.admin) return;
@@ -1625,9 +1776,16 @@ window.exportCSV=function(){
   const esc2=s=>`"${(s||'').replace(/"/g,'""')}"`;
   if(minKey==='__all__'){
     csv='Ministério;'+meetings.map(k=>S.meetings[k].data).join(';')+';Geral\n';
-    Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'')).forEach(([mk,mv])=>{
-      const cells=meetings.map(m=>{ let p=0,e=0; Object.values((S.presencas[m]||{})[mk]||{}).forEach(v=>{ const{status}=decodeStatus(v); if(!status||status==='nao_membro') return; e++; if(status==='presente') p++; }); return e>0?Math.round((p/e)*100)+'%':''; });
-      let tp=0,te=0; meetings.forEach(m=>{ Object.values((S.presencas[m]||{})[mk]||{}).forEach(v=>{ const{status}=decodeStatus(v); if(!status||status==='nao_membro') return; te++; if(status==='presente') tp++; }); });
+    Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'})).forEach(([mk,mv])=>{
+      const cells=meetings.map(m=>{
+        const r=calcMeetStats((S.presencas[m]||{})[mk]||{},mv.membros);
+        return r.eligible>0?Math.round((r.present/r.eligible)*100)+'%':'';
+      });
+      let tp=0,te=0;
+      meetings.forEach(m=>{
+        const r=calcMeetStats((S.presencas[m]||{})[mk]||{},mv.membros);
+        tp+=r.present; te+=r.eligible;
+      });
       const g=te>0?Math.round((tp/te)*100)+'%':'';
       csv+=esc2(mv.nome)+';'+cells.join(';')+';'+g+'\n';
     });
