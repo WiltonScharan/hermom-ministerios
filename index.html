@@ -190,6 +190,43 @@ body.adm .mcard:hover{box-shadow:var(--sh);border-color:var(--border);transform:
 .spin{display:inline-block;width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--navy2);border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .warn-fb{background:var(--amberl);border:1px solid #fcd34d;border-radius:var(--rs);padding:10px 14px;font-size:.82rem;color:#92400e;margin-bottom:16px}
+.md-sec{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.md-sec:first-child{margin-top:0}
+.md-row{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:6px;font-size:.87rem}
+.md-row:nth-child(even){background:var(--cream)}
+.md-nm{color:var(--navy);font-weight:500}
+.md-rt{font-size:.7rem;color:var(--gray);margin-right:8px}
+.md-bg{font-size:.72rem;padding:2px 8px;border-radius:9px}
+.md-bg.sim{background:var(--greenl);color:var(--green)}
+.md-bg.nao{background:var(--grayl);color:var(--gray)}
+.md-ac{font-size:.68rem;color:var(--amber);margin-left:6px}
+.mc{cursor:pointer}
+.mc:hover{box-shadow:var(--sh);transform:translateY(-1px);transition:all .15s}
+/* Roll-call (presença) styles */
+.rc-row{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border)}
+.rc-row:last-child{border-bottom:none}
+.rc-row.ac{background:var(--amberl)}
+.rc-nm{font-weight:600;color:var(--navy);font-size:.88rem}
+.rc-rt{font-size:.68rem;color:var(--gray);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+.rc-btns{display:flex;gap:4px}
+.rc-btn{padding:6px 12px;border:1px solid var(--border);background:#fff;color:var(--gray);font-family:inherit;font-size:.74rem;font-weight:600;cursor:pointer;border-radius:6px;transition:all .15s}
+.rc-btn:hover{border-color:var(--navy2)}
+.rc-btn.on.p{background:var(--green);color:#fff;border-color:var(--green)}
+.rc-btn.on.a{background:var(--red);color:#fff;border-color:var(--red)}
+.rc-btn.on.n{background:var(--gray);color:#fff;border-color:var(--gray)}
+.rc-btn.on.j{background:var(--amber);color:#fff;border-color:var(--amber)}
+.rc-just{flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:inherit;font-size:.82rem;outline:none;color:var(--navy);background:#fff;min-width:120px}
+.rc-just:focus{border-color:var(--amber)}
+@media(max-width:700px){
+  .rc-row{grid-template-columns:1fr;gap:6px}
+}
+/* Ministry multi-select in cooperator modal */
+.mms{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:4px;max-height:200px;overflow-y:auto;padding:8px;border:1px solid var(--border);border-radius:var(--rs);background:var(--cream)}
+.mms label{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--navy);cursor:pointer;padding:4px 6px;border-radius:4px}
+.mms label:hover{background:#fff}
+.mms input{margin:0}
+/* Filter action buttons */
+.flt-acts{display:flex;gap:6px;margin-left:auto}
 body:not(.adm) .adm-only{display:none!important}
 body.adm #admBtn{display:none!important}
 @media(max-width:620px){
@@ -215,11 +252,8 @@ body.adm #admBtn{display:none!important}
     <div class="rt-dot off adm-only" id="rtDot" title="Status Firebase"></div>
     <span class="rt-lbl adm-only" id="rtLbl">Conectando...</span>
     <button class="hbtn adm-only" onclick="adminLogout()">Sair (admin)</button>
-    <button class="hbtn" id="admBtn" onclick="adminLogin()" title="Entrar como administrador">🔒 Entrar como Admin</button>
+    <button class="hbtn" id="admBtn" onclick="adminLogin()" title="Entrar como administrador">🔒 Admin</button>
   </div>
-</div>
-<div class="admbar" onclick="adminLogin()">
-  Você está no <strong>modo visualização</strong>. Para editar dados, marcar presença, criar reuniões e gerenciar ministérios, <strong>clique aqui para entrar como administrador</strong> →
 </div>
 
 <div class="main">
@@ -263,16 +297,12 @@ body.adm #admBtn{display:none!important}
       <select class="fsel" id="mFilter" onchange="filterMembros()">
         <option value="">Todos os ministérios</option>
       </select>
-      <select class="fsel" id="mCorFilter" onchange="filterMembros()">
-        <option value="">Todos os status</option>
-        <option value="normal">Normal</option>
-        <option value="acompanhando">Em acompanhamento</option>
-      </select>
       <select class="fsel" id="mBadgeFilter" onchange="filterMembros()">
         <option value="">Crachá: todos</option>
         <option value="sim">Com crachá</option>
         <option value="nao">Sem crachá</option>
       </select>
+      <button class="btn btn-s btn-sm" onclick="clearMemberFilters()">Limpar filtros</button>
       <span class="cb" id="mCount"></span>
     </div>
     <div class="mg2" id="mGrid"></div>
@@ -289,13 +319,16 @@ body.adm #admBtn{display:none!important}
       </div>
     </div>
     <div class="pt2">
-      <select class="fsel ms" id="pMinSel" onchange="pRefresh()">
+      <select class="fsel ms" id="pMinSel">
         <option value="">— Selecione o ministério —</option>
         <option value="__all__">Todos os ministérios (visão macro)</option>
       </select>
-      <select class="fsel" id="pMeetSel" onchange="pRefresh()">
+      <select class="fsel" id="pMeetSel">
         <option value="__all__">Todas as reuniões</option>
       </select>
+      <button class="btn btn-p btn-sm" onclick="pRefresh()">Filtrar</button>
+      <button class="btn btn-s btn-sm" onclick="pClearFilter()">Limpar filtro</button>
+      <button class="btn btn-d btn-sm adm-only" id="pDelMeetBtn" onclick="deleteMeeting()" style="display:none">Excluir reunião</button>
     </div>
     <div id="pContent">
       <div style="text-align:center;padding:48px;color:var(--gray)">Selecione um ministério para continuar</div>
@@ -351,6 +384,19 @@ body.adm #admBtn{display:none!important}
   </div>
 </div>
 
+<!-- MODAL: Detalhe do Ministério (visualização) -->
+<div class="ov" id="ovMinDetail">
+  <div class="mod lg">
+    <h3 id="mdTitle">—</h3>
+    <p class="sub" id="mdPastor"></p>
+    <div id="mdList" style="max-height:460px;overflow-y:auto"></div>
+    <div class="mact">
+      <button class="btn btn-s" onclick="closeOv('ovMinDetail')">Fechar</button>
+      <button class="btn btn-p adm-only" id="mdEditBtn">Editar este ministério</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Editar Ministério -->
 <div class="ov" id="ovEditMin">
   <div class="mod lg">
@@ -393,31 +439,27 @@ body.adm #admBtn{display:none!important}
 
 <!-- MODAL: Editar/Novo Cooperador -->
 <div class="ov" id="ovMember">
-  <div class="mod">
+  <div class="mod lg">
     <h3 id="mbTitle">Novo Cooperador</h3>
-    <p class="sub">Dados pessoais e de contato. Os ministérios são definidos ao editar cada ministério.</p>
+    <p class="sub">Cadastre os dados do cooperador e marque os ministérios em que ele atua.</p>
     <div class="fld"><label>Nome completo</label><input id="mbName" placeholder="Ex: João Pedro"></div>
     <div class="fld row">
       <div><label>Telefone / WhatsApp</label><input id="mbPhone" placeholder="(11) 99999-9999"></div>
-      <div><label>Aniversário</label><input type="date" id="mbBirth"><div class="hint">Apenas dia/mês serão usados</div></div>
+      <div><label>Aniversário</label><input type="date" id="mbBirth"><div class="hint">Apenas dia/mês são usados</div></div>
     </div>
-    <div class="fld row">
-      <div><label>Crachá recebido</label>
-        <select id="mbBadge">
-          <option value="nao">Não</option>
-          <option value="sim">Sim</option>
-        </select>
-      </div>
-      <div><label>Data entrega do crachá</label><input type="date" id="mbBadgeDate"></div>
-    </div>
-    <div class="fld"><label>Status</label>
-      <select id="mbCor">
-        <option value="normal">Normal</option>
-        <option value="acompanhando">Em acompanhamento pastoral</option>
+    <div class="fld">
+      <label>Crachá recebido</label>
+      <select id="mbBadge">
+        <option value="nao">Não</option>
+        <option value="sim">Sim</option>
       </select>
     </div>
     <div class="fld"><label>Observações</label><textarea id="mbObs" rows="2"></textarea></div>
-    <div id="mbMinsBox" style="font-size:.75rem;color:var(--gray);margin-bottom:10px"></div>
+    <div class="fld">
+      <label>Ministérios em que atua</label>
+      <div class="hint" style="margin-bottom:6px">Marque os ministérios. Ao salvar, o cooperador será adicionado/removido automaticamente.</div>
+      <div class="mms" id="mbMinsList"></div>
+    </div>
     <div class="mact">
       <button class="btn btn-d left" id="mbDelBtn" onclick="deleteMember()">Excluir</button>
       <button class="btn btn-s" onclick="closeOv('ovMember')">Cancelar</button>
@@ -509,6 +551,39 @@ function keyToDate(k){ return k.slice(0,2)+'/'+k.slice(2,4)+'/'+k.slice(4); }
 function displayDate(k){ return k.slice(0,2)+'/'+k.slice(2,4); }
 function yearOf(k){ return k.slice(4); }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function shortName(nome){
+  const parts=(nome||'').split(/\s+/).filter(Boolean);
+  const titles=['Pr','Pra','Pb','Pe','Past','Pastor','Pastora','Irm','Irmao','Irma','Ev','Bp','Apo'];
+  if(parts.length===0) return '';
+  if(titles.includes(parts[0]) && parts.length>1) return parts[0]+' '+parts[1];
+  return parts[0];
+}
+function roleOrder(r){ return r==='lider'?0:r==='colider'?1:2; }
+function sortMemberEntries(entries){
+  return [...entries].sort((a,b)=>{
+    const ra=a[1]?.role||'membro', rb=b[1]?.role||'membro';
+    const d=roleOrder(ra)-roleOrder(rb);
+    if(d!==0) return d;
+    return (a[1]?.nome||a[0]||'').localeCompare(b[1]?.nome||b[0]||'','pt',{sensitivity:'base'});
+  });
+}
+function ministeriosDoCooperador(memberKey){
+  // Retorna {participa:[], pastor:[]} baseado em S.mins e S.members
+  const mem=S.members[memberKey];
+  if(!mem) return {participa:[],pastor:[]};
+  const pkClean=sk(mem.nome);
+  const participa=new Set();
+  const pastorDe=new Set();
+  Object.values(S.mins).forEach(mv=>{
+    if(mv.membros && (mv.membros[memberKey] || mv.membros[pkClean])){
+      participa.add(mv.nome);
+    }
+    if(mv.pastor && sk(mv.pastor)===sk(mem.nome)){
+      pastorDe.add(mv.nome);
+    }
+  });
+  return {participa:[...participa].sort(),pastor:[...pastorDe].sort()};
+}
 function pct(p,e){ return e>0?Math.round((p/e)*100):null; }
 function pctClass(v){ return v==null?'na':v>=80?'hi':v>=60?'mi':'lo'; }
 function pctHtml(v){ if(v==null) return '<span class="pct na">—</span>'; return `<span class="pct ${pctClass(v)}">${v}%</span>`; }
@@ -594,12 +669,14 @@ window.adminLogin=function(){
     S.admin=true;
     document.body.classList.add('adm');
     toast('Modo administrador ativado','ok');
-    // rerender active tab
     const active=document.querySelector('.tab.on')?.id||'';
     if(active==='tab-dashboard') renderDash();
     if(active==='tab-ministerios') renderMins();
     if(active==='tab-membros') renderMembros();
     if(active==='tab-presenca') pRefresh();
+    // Atualiza visibilidade do botão excluir reunião
+    const delBtn=document.getElementById('pDelMeetBtn');
+    if(delBtn) delBtn.style.display=(S.pMeet && S.pMeet!=='__all__')?'inline-block':'none';
   } else {
     toast('Senha incorreta','er');
   }
@@ -818,7 +895,34 @@ function populateMemberDropdowns(){
 window.pRefresh=function(){
   S.pMin=document.getElementById('pMinSel').value;
   S.pMeet=document.getElementById('pMeetSel').value;
+  // Mostra/esconde botão de excluir reunião
+  const delBtn=document.getElementById('pDelMeetBtn');
+  if(delBtn) delBtn.style.display=(S.pMeet && S.pMeet!=='__all__' && S.admin)?'inline-block':'none';
   renderPresenca();
+};
+window.pClearFilter=function(){
+  document.getElementById('pMinSel').value='';
+  document.getElementById('pMeetSel').value='__all__';
+  S.pMin=''; S.pMeet='__all__';
+  document.getElementById('pDelMeetBtn').style.display='none';
+  renderPresenca();
+};
+window.deleteMeeting=function(){
+  if(!S.admin||!S.db) return;
+  const mk=S.pMeet;
+  if(!mk||mk==='__all__') return;
+  const label=S.meetings[mk]?.data||mk;
+  confirmDialog('Excluir reunião',`Excluir a reunião de ${label}? Todas as presenças registradas nessa reunião serão apagadas. Esta ação não pode ser desfeita.`,async()=>{
+    try{
+      const {ref,remove}=fbMods;
+      await remove(ref(S.db,`hermom/reunioes/${mk}`));
+      await remove(ref(S.db,`hermom/presencas/${mk}`));
+      toast('Reunião excluída','ok');
+      S.pMeet='__all__';
+      document.getElementById('pMeetSel').value='__all__';
+      document.getElementById('pDelMeetBtn').style.display='none';
+    }catch(e){toast('Erro: '+e.message,'er');}
+  });
 };
 
 // Helper: get member ministerios (derived from mins configs)
@@ -950,17 +1054,18 @@ function renderMins(){
       });
     });
     const taxa=e>0?Math.round((p/e)*100):null;
-    const chips=membros.slice(0,12).map(m=>{
+    const sortedMembros=sortMemberEntries(Object.entries(mv.membros||{})).map(([,m])=>m);
+    const chips=sortedMembros.slice(0,10).map(m=>{
       const cls=m.role==='lider'?'li':m.role==='colider'?'co':m.cor==='acompanhando'?'ac':'';
-      return `<span class="chip ${cls}">${esc((m.nome||'').split(' ')[0])}</span>`;
+      return `<span class="chip ${cls}">${esc(shortName(m.nome))}</span>`;
     }).join('');
-    return `<div class="mc">
+    return `<div class="mc" onclick="openMinDetail('${mk}')">
       <div class="mc-top">
         <div>
           <div class="mc-nm">${esc(mv.nome)}</div>
           <div class="mc-ps">${mv.pastor?'Pastor: '+esc(mv.pastor):'Pastor não definido'}</div>
         </div>
-        <button class="ebtn adm-only" onclick="openEditMin('${mk}')">Editar</button>
+        <button class="ebtn adm-only" onclick="event.stopPropagation();openEditMin('${mk}')">Editar</button>
       </div>
       <div class="mc-stats">
         <div><div class="ms-v">${count}</div><div class="ms-l">Membros</div></div>
@@ -971,6 +1076,31 @@ function renderMins(){
   }).join('');
   document.getElementById('minGrid').innerHTML=html||'<div class="ldg">Nenhum ministério cadastrado</div>';
 }
+
+window.openMinDetail=function(mk){
+  const mv=S.mins[mk];
+  if(!mv) return;
+  document.getElementById('mdTitle').textContent=mv.nome;
+  document.getElementById('mdPastor').textContent=mv.pastor?'Pastor responsável: '+mv.pastor:'Pastor responsável não definido';
+  const sorted=sortMemberEntries(Object.entries(mv.membros||{}));
+  const lideres=sorted.filter(([,m])=>m.role==='lider');
+  const colideres=sorted.filter(([,m])=>m.role==='colider');
+  const membros=sorted.filter(([,m])=>!m.role||m.role==='membro');
+  const renderGroup=(arr)=>arr.map(([,m])=>{
+    const ac=m.cor==='acompanhando'?'<span class="md-ac">⚠ acompanhamento</span>':'';
+    const bg=m.badge?'<span class="md-bg sim">● Crachá</span>':'<span class="md-bg nao">sem crachá</span>';
+    return `<div class="md-row"><div class="md-nm">${esc(m.nome)}${ac}</div>${bg}</div>`;
+  }).join('');
+  let html='';
+  if(lideres.length) html+=`<div class="md-sec">Líder${lideres.length>1?'es':''} (${lideres.length})</div>${renderGroup(lideres)}`;
+  if(colideres.length) html+=`<div class="md-sec">Co-líder${colideres.length>1?'es':''} (${colideres.length})</div>${renderGroup(colideres)}`;
+  if(membros.length) html+=`<div class="md-sec">Membros (${membros.length})</div>${renderGroup(membros)}`;
+  if(!html) html='<div style="padding:20px;text-align:center;color:var(--gray)">Nenhum membro cadastrado neste ministério.</div>';
+  document.getElementById('mdList').innerHTML=html;
+  const editBtn=document.getElementById('mdEditBtn');
+  editBtn.onclick=()=>{ closeOv('ovMinDetail'); openEditMin(mk); };
+  showOv('ovMinDetail');
+};
 
 window.openEditMin=function(mk){
   if(!S.admin){ toast('Apenas administradores podem editar','er'); return; }
@@ -1100,39 +1230,62 @@ function renderMembros(){
   filterMembros();
 }
 
+window.clearMemberFilters=function(){
+  document.getElementById('mSearch').value='';
+  document.getElementById('mFilter').value='';
+  document.getElementById('mBadgeFilter').value='';
+  filterMembros();
+};
 window.filterMembros=function(){
   const q=document.getElementById('mSearch').value.toLowerCase();
   const minF=document.getElementById('mFilter').value;
-  const corF=document.getElementById('mCorFilter').value;
   const badgeF=document.getElementById('mBadgeFilter').value;
   const entries=Object.entries(S.members);
   const filtered=entries.filter(([mk,m])=>{
     const nm=(m.nome||'').toLowerCase();
     if(!nm.includes(q)) return false;
-    if(corF && (m.cor||'normal')!==corF) return false;
     if(badgeF==='sim' && !m.badge) return false;
     if(badgeF==='nao' && m.badge) return false;
     if(minF){
-      const mins=memberMins(mk);
-      if(!mins.includes(minF)) return false;
+      const info=ministeriosDoCooperador(mk);
+      if(!info.participa.includes(minF) && !info.pastor.includes(minF)) return false;
     }
     return true;
-  }).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||''));
+  }).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'}));
   document.getElementById('mCount').textContent=filtered.length+' exibidos';
   document.getElementById('mGrid').innerHTML=filtered.map(([mk,m])=>{
-    const mins=memberMins(mk);
-    const tags=mins.map((mn,i)=>`<span class="mt${i===0?' pr':''}">${esc(mn)}</span>`).join('');
+    const info=ministeriosDoCooperador(mk);
+    const tagsParticipa=info.participa.map((mn,i)=>`<span class="mt${i===0?' pr':''}">${esc(mn)}</span>`).join('');
+    const tagsPastor=info.pastor.map(mn=>`<span class="mt" style="background:rgba(201,153,58,.18);color:var(--gold);font-weight:700">★ ${esc(mn)}</span>`).join('');
     const bg=m.badge?'<span class="bgi" title="Crachá recebido">● Crachá</span>':'';
-    const ac=(m.cor||'normal')==='acompanhando';
     const tel=m.telefone?`<span>📞 ${esc(m.telefone)}</span>`:'';
     const anv=m.aniversario?`<span>🎂 ${esc(m.aniversario.split('-').slice(1).reverse().join('/'))}</span>`:'';
-    return `<div class="mcard${ac?' ac':''}" onclick="openEditMember('${esc(mk)}')">
-      <div class="mn">${esc(m.nome)}${bg}${ac?'<span style="font-size:.68rem;color:var(--amber)">⚠ Acomp.</span>':''}</div>
-      <div class="mtags">${tags||'<span class="mt">Sem ministério</span>'}</div>
+    const allTags=(tagsPastor+tagsParticipa)||'<span class="mt">Sem ministério</span>';
+    return `<div class="mcard" onclick="openEditMember('${esc(mk)}')">
+      <div class="mn">${esc(m.nome)}${bg}</div>
+      <div class="mtags">${allTags}</div>
       ${tel||anv?`<div class="mcd">${tel}${anv}</div>`:''}
     </div>`;
   }).join('')||'<div class="ldg">Nenhum cooperador encontrado</div>';
 };
+
+function renderMbMinsList(selectedSet){
+  const entries=Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||''));
+  document.getElementById('mbMinsList').innerHTML=entries.map(([mk,mv])=>{
+    const checked=selectedSet.has(mk)?' checked':'';
+    return `<label><input type="checkbox" data-mk="${esc(mk)}"${checked}> ${esc(mv.nome)}</label>`;
+  }).join('')||'<div style="padding:10px;color:var(--gray);font-size:.78rem">Nenhum ministério cadastrado</div>';
+}
+function currentMemberMinKeys(memberKey){
+  const mem=S.members[memberKey];
+  if(!mem) return new Set();
+  const pkClean=sk(mem.nome);
+  const set=new Set();
+  Object.entries(S.mins).forEach(([mk,mv])=>{
+    if(mv.membros && (mv.membros[memberKey] || mv.membros[pkClean])) set.add(mk);
+  });
+  return set;
+}
 
 window.openNewMember=function(){
   if(!S.admin) return;
@@ -1143,10 +1296,8 @@ window.openNewMember=function(){
   document.getElementById('mbPhone').value='';
   document.getElementById('mbBirth').value='';
   document.getElementById('mbBadge').value='nao';
-  document.getElementById('mbBadgeDate').value='';
-  document.getElementById('mbCor').value='normal';
   document.getElementById('mbObs').value='';
-  document.getElementById('mbMinsBox').textContent='Ministérios: —';
+  renderMbMinsList(new Set());
   document.getElementById('mbDelBtn').style.display='none';
   showOv('ovMember');
 };
@@ -1162,11 +1313,8 @@ window.openEditMember=function(mk){
   document.getElementById('mbPhone').value=m.telefone||'';
   document.getElementById('mbBirth').value=m.aniversario||'';
   document.getElementById('mbBadge').value=m.badge?'sim':'nao';
-  document.getElementById('mbBadgeDate').value=m.badgeData||'';
-  document.getElementById('mbCor').value=m.cor||'normal';
   document.getElementById('mbObs').value=m.obs||'';
-  const mins=memberMins(mk);
-  document.getElementById('mbMinsBox').textContent='Ministérios: '+(mins.join(', ')||'—')+' (edite na aba Ministérios)';
+  renderMbMinsList(currentMemberMinKeys(mk));
   document.getElementById('mbDelBtn').style.display='inline-block';
   showOv('ovMember');
 };
@@ -1179,35 +1327,51 @@ window.saveMember=async function(){
     telefone:document.getElementById('mbPhone').value.trim(),
     aniversario:document.getElementById('mbBirth').value,
     badge:document.getElementById('mbBadge').value==='sim',
-    badgeData:document.getElementById('mbBadgeDate').value,
-    cor:document.getElementById('mbCor').value,
     obs:document.getElementById('mbObs').value.trim()
   };
+  // Read ministries selection
+  const selectedMins=new Set();
+  document.querySelectorAll('#mbMinsList input[type=checkbox]').forEach(cb=>{
+    if(cb.checked) selectedMins.add(cb.dataset.mk);
+  });
   try{
-    const {ref,set,update}=fbMods;
+    const {ref,set,update,remove}=fbMods;
     let mk=S.editMemberKey;
+    const oldName=mk?(S.members[mk]?.nome||''):'';
     if(!mk){
-      // new: generate id
       let maxId=0;
       Object.keys(S.members).forEach(k=>{ const n=parseInt((k||'').replace('m_',''))||0; if(n>maxId) maxId=n; });
       mk='m_'+(maxId+1);
     }
     await set(ref(S.db,`hermom/members/${mk}`),data);
-    // If renaming, propagate name to ministry memberships
-    if(S.editMemberKey){
-      const updates={};
-      const pkNew=sk(nome);
-      Object.entries(S.mins).forEach(([minK,mv])=>{
-        if(mv.membros){
-          Object.entries(mv.membros).forEach(([pk,mm])=>{
-            if(sk(mm.nome||'')===sk(S.members[mk]?.nome||'') || pk===sk(S.members[mk]?.nome||'')){
-              updates[`hermom/ministerios_config/${minK}/membros/${pk}/nome`]=nome;
-            }
-          });
+    // Ministry sync: add to checked, remove from unchecked
+    const updates={};
+    const pkClean=sk(nome);
+    const pkOld=oldName?sk(oldName):pkClean;
+    Object.entries(S.mins).forEach(([minK,mv])=>{
+      const wasIn=mv.membros && (mv.membros[mk] || mv.membros[pkOld] || mv.membros[pkClean]);
+      const wants=selectedMins.has(minK);
+      if(wants && !wasIn){
+        updates[`hermom/ministerios_config/${minK}/membros/${pkClean}`]={nome,role:'membro',badge:data.badge,cor:'normal',obs:''};
+      } else if(!wants && wasIn){
+        // Remove any matching key
+        if(mv.membros[mk]) updates[`hermom/ministerios_config/${minK}/membros/${mk}`]=null;
+        if(mv.membros[pkOld]) updates[`hermom/ministerios_config/${minK}/membros/${pkOld}`]=null;
+        if(pkClean!==pkOld && mv.membros[pkClean]) updates[`hermom/ministerios_config/${minK}/membros/${pkClean}`]=null;
+      } else if(wants && wasIn){
+        // Update name if changed
+        if(oldName && oldName!==nome){
+          // Rename key: delete old, add new
+          const oldPk=mv.membros[pkOld]?pkOld:(mv.membros[mk]?mk:pkClean);
+          const oldData=mv.membros[oldPk];
+          if(oldData){
+            updates[`hermom/ministerios_config/${minK}/membros/${oldPk}`]=null;
+            updates[`hermom/ministerios_config/${minK}/membros/${pkClean}`]={...oldData,nome};
+          }
         }
-      });
-      if(Object.keys(updates).length) await update(ref(S.db),updates);
-    }
+      }
+    });
+    if(Object.keys(updates).length) await update(ref(S.db),updates);
     toast(S.editMemberKey?'Cooperador atualizado':'Cooperador criado','ok');
     closeOv('ovMember');
   }catch(e){ toast('Erro: '+e.message,'er'); }
@@ -1237,7 +1401,11 @@ function renderPresenca(){
   }
   const meetings=sortMeets(Object.keys(S.meetings));
   const canEdit=S.admin && !!S.db;
-  if(minKey==='__all__'){ renderMacro(meetings,canEdit); return; }
+  if(minKey==='__all__'){
+    // Se uma reunião específica foi selecionada, filtra para só essa
+    const macroMeets=(meetKey && meetKey!=='__all__')?[meetKey]:meetings;
+    renderMacro(macroMeets,canEdit); return;
+  }
   const minConf=S.mins[minKey]||{};
   const membros=minConf.membros||{};
   if(meetKey==='__all__'){ renderAllMeetings(minKey,membros,meetings,canEdit); }
@@ -1248,33 +1416,92 @@ function renderSingleMeeting(minKey,membros,meetKey,canEdit){
   const pData=(S.presencas[meetKey]||{})[minKey]||{};
   const meetLabel=S.meetings[meetKey]?.data||keyToDate(meetKey);
   const keys=new Set([...Object.keys(membros),...Object.keys(pData)]);
-  const order={lider:0,colider:1,membro:2};
-  const sorted=[...keys].sort((a,b)=>{
-    const ra=membros[a]?.role||'membro', rb=membros[b]?.role||'membro';
-    return (order[ra]||2)-(order[rb]||2)||(membros[a]?.nome||a).localeCompare(membros[b]?.nome||b);
-  });
-  let rows='',p=0,e=0;
-  sorted.forEach(pk=>{
-    const m=membros[pk]||{nome:pk.replace(/_/g,' '),role:'membro',cor:'normal'};
+  const sortedKeys=sortMemberEntries([...keys].map(k=>[k,membros[k]||{nome:k.replace(/_/g,' '),role:'membro'}])).map(([k])=>k);
+  let p=0,e=0;
+  sortedKeys.forEach(pk=>{
     const v=pData[pk];
     const {status}=decodeStatus(v);
     if(status&&status!=='nao_membro'){e++; if(status==='presente') p++;}
-    const cell=cellHtml(v,canEdit,minKey,meetKey,pk);
-    const rl=m.role==='lider'?'<span style="color:var(--gold);font-weight:700;font-size:.7rem">Líder</span>':m.role==='colider'?'<span style="color:var(--navy2);font-size:.7rem">Co-líder</span>':'<span style="color:var(--gray);font-size:.7rem">Membro</span>';
-    rows+=`<tr class="${m.cor==='acompanhando'?'ac':''}"><td><div class="an">${esc(m.nome)}${m.badge?' ●':''}</div>${m.cor==='acompanhando'?'<div style="font-size:.68rem;color:var(--amber)">⚠ Em acompanhamento</div>':''}</td><td>${rl}</td><td class="acl">${cell}</td></tr>`;
   });
   const taxa=e>0?Math.round((p/e)*100):null;
-  document.getElementById('pContent').innerHTML=`<div class="att-w"><table class="att"><thead><tr><th>Nome <small style="font-weight:300;text-transform:none;letter-spacing:0">${esc((S.mins[minKey]||{}).nome||minKey)}</small></th><th>Função</th><th class="c">Presença — ${esc(meetLabel)}${canEdit?'<br><span style="font-size:.65rem;font-weight:300;opacity:.7">clique para editar</span>':''}</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="2"><strong>Totais da reunião</strong> <span style="font-size:.75rem;color:var(--gray)">${p} presentes de ${e} elegíveis</span></td><td class="acl">${pctHtml(taxa)}</td></tr></tfoot></table></div>`;
+
+  if(canEdit){
+    // Roll-call style: inline buttons and justification inputs
+    let rows='';
+    sortedKeys.forEach(pk=>{
+      const m=membros[pk]||{nome:pk.replace(/_/g,' '),role:'membro',cor:'normal'};
+      const v=pData[pk];
+      const {status,just}=decodeStatus(v);
+      const rl=m.role==='lider'?'Líder':m.role==='colider'?'Co-líder':'Membro';
+      const roleColor=m.role==='lider'?'var(--gold)':m.role==='colider'?'var(--navy2)':'var(--gray)';
+      rows+=`<div class="rc-row${m.cor==='acompanhando'?' ac':''}" id="rc_${esc(pk)}">
+        <div>
+          <div class="rc-nm">${esc(m.nome)}${m.badge?' <span style="color:var(--green);font-size:.7rem">●</span>':''}</div>
+          <div class="rc-rt" style="color:${roleColor}">${rl}${m.cor==='acompanhando'?' · ⚠ acompanhamento':''}</div>
+        </div>
+        <div class="rc-btns">
+          <button class="rc-btn p${status==='presente'?' on':''}" onclick="setRcStatus('${esc(minKey)}','${esc(meetKey)}','${esc(pk)}','p')">Presente</button>
+          <button class="rc-btn a${status==='ausente'?' on':''}" onclick="setRcStatus('${esc(minKey)}','${esc(meetKey)}','${esc(pk)}','a')">Ausente</button>
+          <button class="rc-btn n${status==='nao_membro'?' on':''}" onclick="setRcStatus('${esc(minKey)}','${esc(meetKey)}','${esc(pk)}','n')">Não era membro</button>
+        </div>
+        <input type="text" class="rc-just" placeholder="Motivo (justificativa)..." value="${esc(just||'')}" onchange="setRcJust('${esc(minKey)}','${esc(meetKey)}','${esc(pk)}',this.value)">
+      </div>`;
+    });
+    document.getElementById('pContent').innerHTML=`
+      <div style="background:var(--white);border-radius:var(--r);box-shadow:var(--shs);padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+          <div>
+            <strong style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--navy)">${esc((S.mins[minKey]||{}).nome||minKey)}</strong>
+            <div style="font-size:.78rem;color:var(--gray)">Reunião de ${esc(meetLabel)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:.72rem;color:var(--gray)">${p} presentes de ${e} elegíveis</div>
+            <div style="margin-top:3px">${pctHtml(taxa)}</div>
+          </div>
+        </div>
+        ${rows||'<div style="text-align:center;padding:30px;color:var(--gray)">Nenhum membro neste ministério ainda</div>'}
+        <div style="font-size:.72rem;color:var(--gray);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">Dica: clique nos botões para marcar. Digite um motivo no campo ao lado se for ausência justificada.</div>
+      </div>`;
+  } else {
+    // Read-only table
+    let rows='';
+    sortedKeys.forEach(pk=>{
+      const m=membros[pk]||{nome:pk.replace(/_/g,' '),role:'membro',cor:'normal'};
+      const v=pData[pk];
+      const cell=cellHtml(v,false,minKey,meetKey,pk);
+      const rl=m.role==='lider'?'<span style="color:var(--gold);font-weight:700;font-size:.7rem">Líder</span>':m.role==='colider'?'<span style="color:var(--navy2);font-size:.7rem">Co-líder</span>':'<span style="color:var(--gray);font-size:.7rem">Membro</span>';
+      rows+=`<tr class="${m.cor==='acompanhando'?'ac':''}"><td><div class="an">${esc(m.nome)}${m.badge?' ●':''}</div></td><td>${rl}</td><td class="acl">${cell}</td></tr>`;
+    });
+    document.getElementById('pContent').innerHTML=`<div class="att-w"><table class="att"><thead><tr><th>Nome <small style="font-weight:300;text-transform:none;letter-spacing:0">${esc((S.mins[minKey]||{}).nome||minKey)}</small></th><th>Função</th><th class="c">Presença — ${esc(meetLabel)}</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="2"><strong>Totais</strong> <span style="font-size:.75rem;color:var(--gray)">${p} presentes de ${e} elegíveis</span></td><td class="acl">${pctHtml(taxa)}</td></tr></tfoot></table></div>`;
+  }
 }
+
+window.setRcStatus=async function(minKey,meetKey,pk,code){
+  if(!S.admin||!S.db) return;
+  const status=code==='p'?'presente':code==='a'?'ausente':'nao_membro';
+  try{
+    const {ref,set}=fbMods;
+    await set(ref(S.db,`hermom/presencas/${meetKey}/${minKey}/${pk}`),{status,justificativa:''});
+  }catch(e){toast('Erro: '+e.message,'er');}
+};
+window.setRcJust=async function(minKey,meetKey,pk,text){
+  if(!S.admin||!S.db) return;
+  const t=(text||'').trim();
+  try{
+    const {ref,set}=fbMods;
+    if(t){
+      await set(ref(S.db,`hermom/presencas/${meetKey}/${minKey}/${pk}`),{status:'justificado',justificativa:t});
+    } else {
+      // Empty: revert to ausente (or clear)
+      await set(ref(S.db,`hermom/presencas/${meetKey}/${minKey}/${pk}`),{status:'ausente',justificativa:''});
+    }
+  }catch(e){toast('Erro: '+e.message,'er');}
+};
 
 function renderAllMeetings(minKey,membros,meetings,canEdit){
   const keys=new Set(Object.keys(membros));
   meetings.forEach(mk=>{ Object.keys((S.presencas[mk]||{})[minKey]||{}).forEach(pk=>keys.add(pk)); });
-  const order={lider:0,colider:1,membro:2};
-  const sorted=[...keys].sort((a,b)=>{
-    const ra=membros[a]?.role||'membro', rb=membros[b]?.role||'membro';
-    return (order[ra]||2)-(order[rb]||2)||(membros[a]?.nome||a).localeCompare(membros[b]?.nome||b);
-  });
+  const sorted=sortMemberEntries([...keys].map(k=>[k,membros[k]||{nome:k.replace(/_/g,' '),role:'membro'}])).map(([k])=>k);
   const meetCols=meetings.map(mk=>`<th class="c" style="font-size:.68rem">${displayDate(mk)}<br><span style="opacity:.6">${yearOf(mk)}</span></th>`).join('');
   const totals=meetings.map(mk=>calcMeetStats((S.presencas[mk]||{})[minKey]||{}));
   let rows='';
