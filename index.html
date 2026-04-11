@@ -80,7 +80,6 @@ body.adm .admbar{display:none}
 .chip{font-size:.68rem;padding:2px 7px;border-radius:9px;background:var(--grayl);color:var(--gray)}
 .chip.li{background:rgba(201,153,58,.15);color:var(--gold);font-weight:700}
 .chip.co{background:rgba(26,39,68,.08);color:var(--navy2);font-weight:600}
-.chip.ac{background:var(--amberl);color:var(--amber)}
 .tb{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
 .sinp{flex:1;min-width:200px;border:1px solid var(--border);border-radius:var(--rs);padding:9px 13px;font-family:inherit;font-size:.88rem;background:var(--white);outline:none}
 .sinp:focus{border-color:var(--navy2)}
@@ -90,13 +89,15 @@ body.adm .admbar{display:none}
 .mcard{background:var(--white);border-radius:var(--rs);padding:14px 16px;box-shadow:var(--shs);border:1px solid transparent;transition:all .2s;cursor:default}
 body.adm .mcard{cursor:pointer}
 body.adm .mcard:hover{box-shadow:var(--sh);border-color:var(--border);transform:translateY(-1px)}
-.mcard.ac{border-left:3px solid var(--amber)}
 .mn{font-weight:600;font-size:.92rem;color:var(--navy);margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .bgi{font-size:.68rem;color:var(--green)}
-.mtags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
-.mt{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:9px;background:var(--grayl);color:var(--gray)}
-.mt.pr{background:rgba(26,39,68,.1);color:var(--navy2)}
-.mcd{font-size:.7rem;color:var(--gray);margin-top:4px;display:flex;flex-direction:column;gap:2px}
+.mtags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
+.mt{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:10px;background:var(--grayl);color:var(--gray)}
+.mt.gold{background:rgba(201,153,58,.12);color:var(--gold);font-weight:700}
+.mc-sec{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-top:8px;margin-bottom:3px}
+.mc-sec.gold{color:var(--gold)}
+.mc-div{border-top:1px dashed var(--border);margin:8px 0 0}
+.mcd{font-size:.72rem;color:var(--gray);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:2px}
 .mcd span{display:flex;align-items:center;gap:4px}
 .pt2{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
 .ms{min-width:230px;font-weight:500}
@@ -107,8 +108,6 @@ body.adm .mcard:hover{box-shadow:var(--sh);border-color:var(--border);transform:
 .att td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
 .att tr:last-child td{border-bottom:none}
 .att tbody tr:hover td{background:var(--cream)}
-.att tr.ac td{background:var(--amberl)}
-.att tr.ac:hover td{background:#fef3c7}
 .att tfoot td{background:var(--cream2);border-top:2px solid var(--border);font-weight:600}
 .an{font-weight:600;color:var(--navy)}
 .ar{font-size:.7rem;color:var(--gray);margin-top:1px}
@@ -162,12 +161,10 @@ body.adm .mcard:hover{box-shadow:var(--sh);border-color:var(--border);transform:
 .btn-gold{background:var(--gold);color:#fff}.btn-gold:hover{background:#b5862e}
 .btn-sm{padding:5px 11px;font-size:.78rem}
 .mel{display:flex;flex-direction:column;gap:7px;max-height:340px;overflow-y:auto;padding-right:4px}
-.mer{display:grid;align-items:center;gap:6px;padding:8px 10px;border-radius:var(--rs);background:var(--cream);grid-template-columns:1fr auto auto auto 80px auto}
-.mer-nm{font-weight:600;font-size:.82rem;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mer select,.mer input[type=text]{font-family:inherit;font-size:.76rem;border:1px solid var(--border);border-radius:5px;padding:3px 7px;outline:none;background:white;color:var(--navy)}
+.mer{display:grid;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);background:var(--cream);grid-template-columns:1fr 110px 90px 1fr auto}
+.mer-nm{font-weight:600;font-size:.85rem;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mer select,.mer input[type=text]{font-family:inherit;font-size:.78rem;border:1px solid var(--border);border-radius:5px;padding:5px 8px;outline:none;background:white;color:var(--navy)}
 .mer-obs{width:100%!important}
-.cbt{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);cursor:pointer;transition:all .15s}
-.cbt.ac{background:var(--amberl);border-color:var(--amber)}
 .amr{display:flex;gap:8px;margin-top:10px}
 .amr select{flex:1}
 @media(max-width:620px){
@@ -199,13 +196,11 @@ body.adm .mcard:hover{box-shadow:var(--sh);border-color:var(--border);transform:
 .md-bg{font-size:.72rem;padding:2px 8px;border-radius:9px}
 .md-bg.sim{background:var(--greenl);color:var(--green)}
 .md-bg.nao{background:var(--grayl);color:var(--gray)}
-.md-ac{font-size:.68rem;color:var(--amber);margin-left:6px}
 .mc{cursor:pointer}
 .mc:hover{box-shadow:var(--sh);transform:translateY(-1px);transition:all .15s}
 /* Roll-call (presença) styles */
 .rc-row{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border)}
 .rc-row:last-child{border-bottom:none}
-.rc-row.ac{background:var(--amberl)}
 .rc-nm{font-weight:600;color:var(--navy);font-size:.88rem}
 .rc-rt{font-size:.68rem;color:var(--gray);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
 .rc-btns{display:flex;gap:4px}
@@ -221,10 +216,12 @@ body.adm .mcard:hover{box-shadow:var(--sh);border-color:var(--border);transform:
   .rc-row{grid-template-columns:1fr;gap:6px}
 }
 /* Ministry multi-select in cooperator modal */
-.mms{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:4px;max-height:200px;overflow-y:auto;padding:8px;border:1px solid var(--border);border-radius:var(--rs);background:var(--cream)}
-.mms label{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--navy);cursor:pointer;padding:4px 6px;border-radius:4px}
-.mms label:hover{background:#fff}
-.mms input{margin:0}
+.mms{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;max-height:260px;overflow-y:auto;padding:8px;border:1px solid var(--border);border-radius:var(--rs);background:#fff}
+.mms label{display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--navy);cursor:pointer;padding:9px 12px;border-radius:6px;transition:background .12s;line-height:1.2}
+.mms label:hover{background:var(--cream)}
+.mms label input{margin:0;width:16px;height:16px;accent-color:var(--navy);flex-shrink:0}
+.mms label span{flex:1;text-align:left}
+@media(max-width:600px){.mms{grid-template-columns:1fr}}
 /* Filter action buttons */
 .flt-acts{display:flex;gap:6px;margin-left:auto}
 body:not(.adm) .adm-only{display:none!important}
@@ -246,7 +243,7 @@ body.adm #admBtn{display:none!important}
     <button class="nb on" onclick="ST('dashboard',this)">Dashboard</button>
     <button class="nb" onclick="ST('ministerios',this)">Ministérios</button>
     <button class="nb" onclick="ST('membros',this)">Cooperadores</button>
-    <button class="nb" onclick="ST('presenca',this)">Presença</button>
+    <button class="nb" onclick="ST('presenca',this)">Reuniões</button>
   </nav>
   <div class="hdr-r">
     <div class="rt-dot off adm-only" id="rtDot" title="Status Firebase"></div>
@@ -283,6 +280,10 @@ body.adm #admBtn{display:none!important}
       <div class="pt">Ministérios <small id="min-ct"></small></div>
       <button class="btn btn-g adm-only" onclick="openNewMin()">+ Novo Ministério</button>
     </div>
+    <div class="tb">
+      <input type="search" class="sinp" id="minSearch" placeholder="Buscar ministério ou pastor..." oninput="renderMins()">
+      <button class="btn btn-s btn-sm" onclick="document.getElementById('minSearch').value='';renderMins()">Limpar</button>
+    </div>
     <div class="mg" id="minGrid"></div>
   </div>
 
@@ -308,12 +309,11 @@ body.adm #admBtn{display:none!important}
     <div class="mg2" id="mGrid"></div>
   </div>
 
-  <!-- PRESENÇA -->
+  <!-- REUNIÕES -->
   <div class="tab" id="tab-presenca">
     <div class="ph">
-      <div class="pt">Controle de Presença</div>
+      <div class="pt">Reuniões <small id="meet-ct"></small></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-s btn-sm adm-only" onclick="openBulk()">Marcação em Lote</button>
         <button class="btn btn-s btn-sm" onclick="exportCSV()">Exportar CSV</button>
         <button class="btn btn-g adm-only" onclick="showNewMeetModal()">+ Nova Reunião</button>
       </div>
@@ -401,7 +401,7 @@ body.adm #admBtn{display:none!important}
 <div class="ov" id="ovEditMin">
   <div class="mod lg">
     <h3 id="emTitle">Editar Ministério</h3>
-    <p class="sub">Gerencie nome, pastor responsável, membros, funções, crachás e acompanhamentos.</p>
+    <p class="sub">Gerencie nome, pastor responsável, membros, funções e crachás.</p>
     <div class="fld row">
       <div><label>Nome do Ministério</label><input id="emName" placeholder="Ex: LOUVOR"></div>
       <div><label>Pastor Responsável</label><input id="emPastor" placeholder="Nome do pastor..."></div>
@@ -468,24 +468,14 @@ body.adm #admBtn{display:none!important}
   </div>
 </div>
 
-<!-- MODAL: Marcação em Lote -->
-<div class="ov" id="ovBulk">
+<!-- MODAL: Escolher Ministério para marcar presença -->
+<div class="ov" id="ovMeetMin">
   <div class="mod">
-    <h3>Marcação em Lote</h3>
-    <p class="sub">Marcar rapidamente todos os membros de um ministério em uma reunião específica.</p>
-    <div class="fld"><label>Ministério</label><select id="blMin" class="fsel" style="width:100%"></select></div>
-    <div class="fld"><label>Reunião</label><select id="blMeet" class="fsel" style="width:100%"></select></div>
-    <div class="fld"><label>Marcar todos como</label>
-      <select id="blStatus" class="fsel" style="width:100%">
-        <option value="p">Presente</option>
-        <option value="a">Ausente</option>
-        <option value="n">Ainda não era membro</option>
-      </select>
-    </div>
-    <div class="fld"><label><input type="checkbox" id="blOnlyEmpty" checked> Apenas células ainda não preenchidas</label></div>
+    <h3>Marcar presença da reunião</h3>
+    <p class="sub" id="mmSub">Selecione o ministério para começar a marcar a presença.</p>
+    <div id="mmList" style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto"></div>
     <div class="mact">
-      <button class="btn btn-s" onclick="closeOv('ovBulk')">Cancelar</button>
-      <button class="btn btn-p" onclick="applyBulk()">Aplicar</button>
+      <button class="btn btn-s" onclick="closeOv('ovMeetMin')">Fechar</button>
     </div>
   </div>
 </div>
@@ -853,14 +843,6 @@ function renderMinDropdowns(){
     const o=document.createElement('option'); o.value=mv.nome; o.textContent=mv.nome; mf.appendChild(o);
   });
   if(mfc) mf.value=mfc;
-  // Bulk min dropdown
-  const bl=document.getElementById('blMin');
-  if(bl){
-    bl.innerHTML='';
-    Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'')).forEach(([k,v])=>{
-      const o=document.createElement('option'); o.value=k; o.textContent=v.nome; bl.appendChild(o);
-    });
-  }
 }
 
 function renderMeetDropdowns(){
@@ -871,14 +853,6 @@ function renderMeetDropdowns(){
     const o=document.createElement('option'); o.value=k; o.textContent=S.meetings[k]?.data||keyToDate(k); sel.appendChild(o);
   });
   if(cur) sel.value=cur;
-  // Bulk meet
-  const bl=document.getElementById('blMeet');
-  if(bl){
-    bl.innerHTML='';
-    sortMeets(Object.keys(S.meetings)).forEach(k=>{
-      const o=document.createElement('option'); o.value=k; o.textContent=S.meetings[k]?.data||keyToDate(k); bl.appendChild(o);
-    });
-  }
 }
 
 function populateMemberDropdowns(){
@@ -895,9 +869,10 @@ function populateMemberDropdowns(){
 window.pRefresh=function(){
   S.pMin=document.getElementById('pMinSel').value;
   S.pMeet=document.getElementById('pMeetSel').value;
-  // Mostra/esconde botão de excluir reunião
   const delBtn=document.getElementById('pDelMeetBtn');
   if(delBtn) delBtn.style.display=(S.pMeet && S.pMeet!=='__all__' && S.admin)?'inline-block':'none';
+  const ct=document.getElementById('meet-ct');
+  if(ct) ct.textContent=Object.keys(S.meetings).length+' registradas';
   renderPresenca();
 };
 window.pClearFilter=function(){
@@ -1041,8 +1016,13 @@ function renderDash(){
 // ============================== MINISTÉRIOS ==============================
 function renderMins(){
   const meetings=sortMeets(Object.keys(S.meetings));
-  document.getElementById('min-ct').textContent=Object.keys(S.mins).length+' ministérios';
-  const html=Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'')).map(([mk,mv])=>{
+  const q=(document.getElementById('minSearch')?.value||'').toLowerCase().trim();
+  const entries=Object.entries(S.mins).filter(([,mv])=>{
+    if(!q) return true;
+    return (mv.nome||'').toLowerCase().includes(q) || (mv.pastor||'').toLowerCase().includes(q);
+  }).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'}));
+  document.getElementById('min-ct').textContent=entries.length+' de '+Object.keys(S.mins).length+' ministérios';
+  const html=entries.map(([mk,mv])=>{
     const membros=Object.values(mv.membros||{});
     const count=membros.length;
     let p=0,e=0;
@@ -1056,7 +1036,7 @@ function renderMins(){
     const taxa=e>0?Math.round((p/e)*100):null;
     const sortedMembros=sortMemberEntries(Object.entries(mv.membros||{})).map(([,m])=>m);
     const chips=sortedMembros.slice(0,10).map(m=>{
-      const cls=m.role==='lider'?'li':m.role==='colider'?'co':m.cor==='acompanhando'?'ac':'';
+      const cls=m.role==='lider'?'li':m.role==='colider'?'co':'';
       return `<span class="chip ${cls}">${esc(shortName(m.nome))}</span>`;
     }).join('');
     return `<div class="mc" onclick="openMinDetail('${mk}')">
@@ -1087,9 +1067,8 @@ window.openMinDetail=function(mk){
   const colideres=sorted.filter(([,m])=>m.role==='colider');
   const membros=sorted.filter(([,m])=>!m.role||m.role==='membro');
   const renderGroup=(arr)=>arr.map(([,m])=>{
-    const ac=m.cor==='acompanhando'?'<span class="md-ac">⚠ acompanhamento</span>':'';
     const bg=m.badge?'<span class="md-bg sim">● Crachá</span>':'<span class="md-bg nao">sem crachá</span>';
-    return `<div class="md-row"><div class="md-nm">${esc(m.nome)}${ac}</div>${bg}</div>`;
+    return `<div class="md-row"><div class="md-nm">${esc(m.nome)}</div>${bg}</div>`;
   }).join('');
   let html='';
   if(lideres.length) html+=`<div class="md-sec">Líder${lideres.length>1?'es':''} (${lideres.length})</div>${renderGroup(lideres)}`;
@@ -1118,7 +1097,8 @@ window.openEditMin=function(mk){
 
 function renderEditMinList(){
   const membros=S.editMinData.membros||{};
-  const html=Object.entries(membros).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'')).map(([pk,m])=>`
+  const sorted=sortMemberEntries(Object.entries(membros));
+  const html=sorted.map(([pk,m])=>`
     <div class="mer" id="em_${esc(pk)}">
       <div class="mer-nm" title="${esc(m.nome)}">${esc(m.nome)}</div>
       <select class="mer-role" data-pk="${esc(pk)}" title="Função">
@@ -1126,23 +1106,14 @@ function renderEditMinList(){
         <option value="colider"${m.role==='colider'?' selected':''}>Co-líder</option>
         <option value="membro"${m.role==='membro'||!m.role?' selected':''}>Membro</option>
       </select>
-      <label title="Crachá recebido" style="display:flex;align-items:center;gap:3px;font-size:.74rem;color:var(--gray)">
+      <label title="Crachá recebido" style="display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--gray);white-space:nowrap">
         <input type="checkbox" data-pk="${esc(pk)}" class="mer-badge"${m.badge?' checked':''}> Crachá
       </label>
-      <div class="cbt${m.cor==='acompanhando'?' ac':''}" title="${m.cor==='acompanhando'?'Acompanhando — clique para normalizar':'Normal — clique para marcar acompanhamento'}" onclick="toggleCor('${esc(pk)}')" id="cbt_${esc(pk)}"></div>
-      <input type="text" class="mer-obs" placeholder="Obs..." value="${esc(m.obs||'')}" data-pk="${esc(pk)}">
+      <input type="text" class="mer-obs" placeholder="Observação..." value="${esc(m.obs||'')}" data-pk="${esc(pk)}">
       <button class="btn btn-d btn-sm" onclick="removeFromMin('${esc(pk)}')">Remover</button>
     </div>`).join('');
   document.getElementById('emList').innerHTML=html||'<div style="text-align:center;padding:20px;color:var(--gray);font-size:.85rem">Nenhum membro neste ministério ainda</div>';
 }
-
-window.toggleCor=function(pk){
-  const m=S.editMinData.membros[pk];
-  if(!m) return;
-  m.cor=m.cor==='acompanhando'?'normal':'acompanhando';
-  const btn=document.getElementById('cbt_'+pk);
-  if(btn) btn.className='cbt'+(m.cor==='acompanhando'?' ac':'');
-};
 
 window.removeFromMin=function(pk){
   delete S.editMinData.membros[pk];
@@ -1156,8 +1127,11 @@ window.addMemberToMin=function(){
   const mem=S.members[mk];
   if(!mem){ toast('Cooperador não encontrado','er'); return; }
   const pk=sk(mem.nome);
-  if(S.editMinData.membros[pk]){ toast('Cooperador já está no ministério','er'); return; }
-  S.editMinData.membros[pk]={nome:mem.nome,role:'membro',badge:mem.badge||false,cor:mem.cor||'normal',obs:''};
+  // Prevenção de duplicatas: checa por key limpa, id do membro e nome literal
+  const existing=S.editMinData.membros||{};
+  const dup=existing[pk]||existing[mk]||Object.values(existing).find(x=>sk(x.nome||'')===pk);
+  if(dup){ toast(`"${mem.nome}" já está neste ministério`,'er'); return; }
+  S.editMinData.membros[pk]={nome:mem.nome,role:'membro',badge:mem.badge||false,obs:''};
   renderEditMinList();
   sel.value='';
 };
@@ -1255,25 +1229,31 @@ window.filterMembros=function(){
   document.getElementById('mCount').textContent=filtered.length+' exibidos';
   document.getElementById('mGrid').innerHTML=filtered.map(([mk,m])=>{
     const info=ministeriosDoCooperador(mk);
-    const tagsParticipa=info.participa.map((mn,i)=>`<span class="mt${i===0?' pr':''}">${esc(mn)}</span>`).join('');
-    const tagsPastor=info.pastor.map(mn=>`<span class="mt" style="background:rgba(201,153,58,.18);color:var(--gold);font-weight:700">★ ${esc(mn)}</span>`).join('');
+    const tagsParticipa=info.participa.length
+      ? info.participa.map(mn=>`<span class="mt">${esc(mn)}</span>`).join('')
+      : '<span class="mt">Sem ministério</span>';
+    const tagsPastor=info.pastor.map(mn=>`<span class="mt gold">${esc(mn)}</span>`).join('');
     const bg=m.badge?'<span class="bgi" title="Crachá recebido">● Crachá</span>':'';
     const tel=m.telefone?`<span>📞 ${esc(m.telefone)}</span>`:'';
     const anv=m.aniversario?`<span>🎂 ${esc(m.aniversario.split('-').slice(1).reverse().join('/'))}</span>`:'';
-    const allTags=(tagsPastor+tagsParticipa)||'<span class="mt">Sem ministério</span>';
+    const pastorBlock=info.pastor.length
+      ? `<div class="mc-sec gold">Responsável por</div><div class="mtags">${tagsPastor}</div>`
+      : '';
     return `<div class="mcard" onclick="openEditMember('${esc(mk)}')">
       <div class="mn">${esc(m.nome)}${bg}</div>
-      <div class="mtags">${allTags}</div>
+      <div class="mc-sec">Ministério(s) atuante</div>
+      <div class="mtags">${tagsParticipa}</div>
+      ${pastorBlock}
       ${tel||anv?`<div class="mcd">${tel}${anv}</div>`:''}
     </div>`;
   }).join('')||'<div class="ldg">Nenhum cooperador encontrado</div>';
 };
 
 function renderMbMinsList(selectedSet){
-  const entries=Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||''));
+  const entries=Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'}));
   document.getElementById('mbMinsList').innerHTML=entries.map(([mk,mv])=>{
     const checked=selectedSet.has(mk)?' checked':'';
-    return `<label><input type="checkbox" data-mk="${esc(mk)}"${checked}> ${esc(mv.nome)}</label>`;
+    return `<label><input type="checkbox" data-mk="${esc(mk)}"${checked}><span>${esc(mv.nome)}</span></label>`;
   }).join('')||'<div style="padding:10px;color:var(--gray);font-size:.78rem">Nenhum ministério cadastrado</div>';
 }
 function currentMemberMinKeys(memberKey){
@@ -1434,10 +1414,10 @@ function renderSingleMeeting(minKey,membros,meetKey,canEdit){
       const {status,just}=decodeStatus(v);
       const rl=m.role==='lider'?'Líder':m.role==='colider'?'Co-líder':'Membro';
       const roleColor=m.role==='lider'?'var(--gold)':m.role==='colider'?'var(--navy2)':'var(--gray)';
-      rows+=`<div class="rc-row${m.cor==='acompanhando'?' ac':''}" id="rc_${esc(pk)}">
+      rows+=`<div class="rc-row" id="rc_${esc(pk)}">
         <div>
           <div class="rc-nm">${esc(m.nome)}${m.badge?' <span style="color:var(--green);font-size:.7rem">●</span>':''}</div>
-          <div class="rc-rt" style="color:${roleColor}">${rl}${m.cor==='acompanhando'?' · ⚠ acompanhamento':''}</div>
+          <div class="rc-rt" style="color:${roleColor}">${rl}</div>
         </div>
         <div class="rc-btns">
           <button class="rc-btn p${status==='presente'?' on':''}" onclick="setRcStatus('${esc(minKey)}','${esc(meetKey)}','${esc(pk)}','p')">Presente</button>
@@ -1470,7 +1450,7 @@ function renderSingleMeeting(minKey,membros,meetKey,canEdit){
       const v=pData[pk];
       const cell=cellHtml(v,false,minKey,meetKey,pk);
       const rl=m.role==='lider'?'<span style="color:var(--gold);font-weight:700;font-size:.7rem">Líder</span>':m.role==='colider'?'<span style="color:var(--navy2);font-size:.7rem">Co-líder</span>':'<span style="color:var(--gray);font-size:.7rem">Membro</span>';
-      rows+=`<tr class="${m.cor==='acompanhando'?'ac':''}"><td><div class="an">${esc(m.nome)}${m.badge?' ●':''}</div></td><td>${rl}</td><td class="acl">${cell}</td></tr>`;
+      rows+=`<tr><td><div class="an">${esc(m.nome)}${m.badge?' ●':''}</div></td><td>${rl}</td><td class="acl">${cell}</td></tr>`;
     });
     document.getElementById('pContent').innerHTML=`<div class="att-w"><table class="att"><thead><tr><th>Nome <small style="font-weight:300;text-transform:none;letter-spacing:0">${esc((S.mins[minKey]||{}).nome||minKey)}</small></th><th>Função</th><th class="c">Presença — ${esc(meetLabel)}</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="2"><strong>Totais</strong> <span style="font-size:.75rem;color:var(--gray)">${p} presentes de ${e} elegíveis</span></td><td class="acl">${pctHtml(taxa)}</td></tr></tfoot></table></div>`;
   }
@@ -1515,7 +1495,7 @@ function renderAllMeetings(minKey,membros,meetings,canEdit){
       return `<td class="acl">${cellHtml(v,canEdit,minKey,mk,pk)}</td>`;
     }).join('');
     const rl=m.role==='lider'?'<span style="color:var(--gold);font-size:.68rem;font-weight:700">Líder</span>':m.role==='colider'?'<span style="color:var(--navy2);font-size:.68rem">Co-líder</span>':'';
-    rows+=`<tr class="${m.cor==='acompanhando'?'ac':''}"><td><div class="an">${esc(m.nome)}${m.badge?' ●':''}</div>${rl?'<div>'+rl+'</div>':''}</td>${cells}<td class="acl">${pctHtml(pct(personP,personE))}</td></tr>`;
+    rows+=`<tr><td><div class="an">${esc(m.nome)}${m.badge?' ●':''}</div>${rl?'<div>'+rl+'</div>':''}</td>${cells}<td class="acl">${pctHtml(pct(personP,personE))}</td></tr>`;
   });
   const totRow=totals.map(t=>{
     const tx=t.eligible>0?Math.round((t.present/t.eligible)*100):null;
@@ -1595,7 +1575,7 @@ window.confirmJust=async function(){
 
 // ============================== NOVA REUNIÃO ==============================
 window.createMeeting=async function(){
-  if(!S.db){ toast('Conecte o Firebase','er'); return; }
+  if(!S.admin||!S.db){ toast('Apenas administradores','er'); return; }
   const dv=document.getElementById('nmDate').value;
   if(!dv){ toast('Selecione uma data','er'); return; }
   const [y,mo,d]=dv.split('-');
@@ -1606,44 +1586,34 @@ window.createMeeting=async function(){
     const {ref,set}=fbMods;
     await set(ref(S.db,`hermom/reunioes/${key}`),{data:display,criadoEm:Date.now()});
     closeOv('ovNewMeet');
-    toast('Reunião criada!','ok');
+    toast('Reunião criada! Agora escolha o ministério para marcar presença.','ok');
     document.getElementById('pMeetSel').value=key; S.pMeet=key;
-    if(S.pMin) renderPresenca();
+    // Abre o picker de ministério automaticamente
+    setTimeout(()=>showMeetMinPicker(key),300);
   }catch(e){toast('Erro: '+e.message,'er');}
 };
 
-// ============================== MARCAÇÃO EM LOTE ==============================
-window.openBulk=function(){
+// ============================== ESCOLHER MINISTÉRIO PARA PRESENÇA ==============================
+window.showMeetMinPicker=function(meetKey){
   if(!S.admin) return;
-  if(!S.db){ toast('Aguarde a conexão com Firebase','er'); return; }
-  renderMinDropdowns(); renderMeetDropdowns();
-  if(S.pMin && S.pMin!=='__all__') document.getElementById('blMin').value=S.pMin;
-  if(S.pMeet && S.pMeet!=='__all__') document.getElementById('blMeet').value=S.pMeet;
-  showOv('ovBulk');
+  const lbl=S.meetings[meetKey]?.data||keyToDate(meetKey);
+  document.getElementById('mmSub').textContent=`Reunião de ${lbl}. Escolha o ministério para começar a marcar a presença dos cooperadores:`;
+  const entries=Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'}));
+  document.getElementById('mmList').innerHTML=entries.map(([mk,mv])=>{
+    const count=Object.keys(mv.membros||{}).length;
+    return `<button class="btn btn-s" style="justify-content:space-between;display:flex;align-items:center;padding:12px 16px;text-align:left" onclick="goToMinMeet('${esc(mk)}','${esc(meetKey)}')">
+      <span style="font-weight:600">${esc(mv.nome)}</span>
+      <span style="color:var(--gray);font-size:.75rem">${count} membros →</span>
+    </button>`;
+  }).join('')||'<div style="padding:20px;text-align:center;color:var(--gray)">Nenhum ministério cadastrado</div>';
+  showOv('ovMeetMin');
 };
-
-window.applyBulk=async function(){
-  const minKey=document.getElementById('blMin').value;
-  const meetKey=document.getElementById('blMeet').value;
-  const code=document.getElementById('blStatus').value;
-  const onlyEmpty=document.getElementById('blOnlyEmpty').checked;
-  if(!minKey||!meetKey){ toast('Selecione ministério e reunião','er'); return; }
-  const mv=S.mins[minKey];
-  if(!mv){ toast('Ministério inválido','er'); return; }
-  const status=code==='p'?'presente':code==='a'?'ausente':'nao_membro';
-  const existing=(S.presencas[meetKey]||{})[minKey]||{};
-  try{
-    const {ref,update}=fbMods;
-    const updates={};
-    Object.keys(mv.membros||{}).forEach(pk=>{
-      if(onlyEmpty && existing[pk]) return;
-      updates[`hermom/presencas/${meetKey}/${minKey}/${pk}`]={status,justificativa:''};
-    });
-    if(!Object.keys(updates).length){ toast('Nada para atualizar','er'); return; }
-    await update(ref(S.db),updates);
-    toast(`${Object.keys(updates).length} marcações aplicadas`,'ok');
-    closeOv('ovBulk');
-  }catch(e){toast('Erro: '+e.message,'er');}
+window.goToMinMeet=function(mk,meetKey){
+  closeOv('ovMeetMin');
+  document.getElementById('pMinSel').value=mk;
+  document.getElementById('pMeetSel').value=meetKey;
+  S.pMin=mk; S.pMeet=meetKey;
+  pRefresh();
 };
 
 // ============================== EXPORT CSV ==============================
