@@ -27,12 +27,19 @@ body{font-family:'IBM Plex Sans',sans-serif;background:#faf7f2;color:#1a2744;min
 .nb{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.5);font-family:inherit;font-size:.82rem;font-weight:500;padding:7px 13px;border-radius:6px;transition:all .2s;letter-spacing:.02em}
 .nb:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.07)}
 .nb.on{color:var(--gold2);background:rgba(201,153,58,.15)}
-.hdr-r{margin-left:auto;display:flex;gap:8px;align-items:center}
+.hdr-r{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .rt-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;transition:background .3s}
 .rt-dot.off{background:#6b7a9e}
 .rt-lbl{font-size:.72rem;color:rgba(255,255,255,.45)}
 .hbtn{background:rgba(201,153,58,.18);border:1px solid rgba(201,153,58,.35);color:var(--gold2);font-family:inherit;font-size:.78rem;font-weight:500;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .2s}
 .hbtn:hover{background:rgba(201,153,58,.3)}
+#admBtn{background:var(--gold);color:#fff;border:none;font-size:.88rem;font-weight:600;padding:8px 18px;box-shadow:0 2px 12px rgba(201,153,58,.4);animation:admPulse 2s ease-in-out infinite}
+#admBtn:hover{background:#b5862e;transform:scale(1.05)}
+@keyframes admPulse{0%,100%{box-shadow:0 2px 12px rgba(201,153,58,.4)}50%{box-shadow:0 4px 20px rgba(232,184,75,.7)}}
+.admbar{background:linear-gradient(90deg,var(--gold) 0%,var(--gold2) 100%);color:#fff;padding:10px 20px;text-align:center;font-size:.88rem;font-weight:500;cursor:pointer;border-bottom:2px solid #b5862e;transition:filter .2s}
+.admbar:hover{filter:brightness(1.08)}
+.admbar strong{font-weight:700}
+body.adm .admbar{display:none}
 .main{max-width:1340px;margin:0 auto;padding:26px 22px}
 .tab{display:none;animation:fi .2s}
 .tab.on{display:block}
@@ -44,7 +51,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:#faf7f2;color:#1a2744;min
 .sc{background:var(--white);border-radius:var(--r);padding:18px 22px;box-shadow:var(--shs);border-left:4px solid var(--navy2)}
 .sc.g{border-left-color:var(--gold)}.sc.gr{border-left-color:var(--green)}.sc.r{border-left-color:var(--red)}
 .sl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gray);margin-bottom:8px}
-.sv{font-family:'Playfair Display',serif;font-size:2.2rem;color:var(--navy);font-weight:700;line-height:1}
+.sv{font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--navy);font-weight:700;line-height:1}
 .ss{font-size:.77rem;color:var(--gray);margin-top:5px}
 .cg{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
 @media(max-width:820px){.cg{grid-template-columns:1fr}}
@@ -208,8 +215,11 @@ body.adm #admBtn{display:none!important}
     <div class="rt-dot off adm-only" id="rtDot" title="Status Firebase"></div>
     <span class="rt-lbl adm-only" id="rtLbl">Conectando...</span>
     <button class="hbtn adm-only" onclick="adminLogout()">Sair (admin)</button>
-    <button class="hbtn" id="admBtn" onclick="adminLogin()" title="Entrar como administrador">🔒 Admin</button>
+    <button class="hbtn" id="admBtn" onclick="adminLogin()" title="Entrar como administrador">🔒 Entrar como Admin</button>
   </div>
+</div>
+<div class="admbar" onclick="adminLogin()">
+  Você está no <strong>modo visualização</strong>. Para editar dados, marcar presença, criar reuniões e gerenciar ministérios, <strong>clique aqui para entrar como administrador</strong> →
 </div>
 
 <div class="main">
@@ -1280,7 +1290,10 @@ function renderAllMeetings(minKey,membros,meetings,canEdit){
     const rl=m.role==='lider'?'<span style="color:var(--gold);font-size:.68rem;font-weight:700">Líder</span>':m.role==='colider'?'<span style="color:var(--navy2);font-size:.68rem">Co-líder</span>':'';
     rows+=`<tr class="${m.cor==='acompanhando'?'ac':''}"><td><div class="an">${esc(m.nome)}${m.badge?' ●':''}</div>${rl?'<div>'+rl+'</div>':''}</td>${cells}<td class="acl">${pctHtml(pct(personP,personE))}</td></tr>`;
   });
-  const totRow=totals.map(t=>`<td class="acl"><div class="mt-c"><div class="mt-n">${t.present}/${t.eligible}</div><div class="mt-s">presentes</div></div></td>`).join('');
+  const totRow=totals.map(t=>{
+    const tx=t.eligible>0?Math.round((t.present/t.eligible)*100):null;
+    return `<td class="acl"><div class="mt-c"><div class="mt-n">${t.present} de ${t.eligible}</div><div class="mt-s">presentes / elegíveis</div><div style="margin-top:3px">${pctHtml(tx)}</div></div></td>`;
+  }).join('');
   document.getElementById('pContent').innerHTML=`<div class="att-w"><table class="att"><thead><tr><th>${esc((S.mins[minKey]||{}).nome||minKey)}</th>${meetCols}<th class="c">Taxa</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td><strong>Totais</strong></td>${totRow}<td></td></tr></tfoot></table></div>`;
 }
 
