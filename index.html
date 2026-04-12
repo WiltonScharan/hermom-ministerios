@@ -645,6 +645,16 @@ function pct(p,e){ return e>0?Math.round((p/e)*100):null; }
 function pctClass(v){ return v==null?'na':v>=80?'hi':v>=60?'mi':'lo'; }
 function pctHtml(v){ if(v==null) return '<span class="pct na">—</span>'; return `<span class="pct ${pctClass(v)}">${v}%</span>`; }
 function sortMeets(ids){ return [...ids].sort((a,b)=>{ const pa=a.slice(4)+a.slice(2,4)+a.slice(0,2); const pb=b.slice(4)+b.slice(2,4)+b.slice(0,2); return pa.localeCompare(pb); }); }
+function isReunionPast(meetKey){
+  if(!meetKey||meetKey.length!==8) return false;
+  const d=parseInt(meetKey.substring(0,2),10);
+  const m=parseInt(meetKey.substring(2,4),10);
+  const y=parseInt(meetKey.substring(4),10);
+  if(!d||!m||!y) return false;
+  const reunionDate=new Date(y,m-1,d); reunionDate.setHours(0,0,0,0);
+  const today=new Date(); today.setHours(0,0,0,0);
+  return reunionDate<today;
+}
 
 function decodeStatus(v){
   if(!v) return {status:null,just:''};
@@ -1243,7 +1253,6 @@ window.addMemberToMin=function(){
 
 window.saveMinConfig=async function(){
   if(!S.db){ toast('Conecte o Firebase para salvar','er'); return; }
-  // Collect form
   document.querySelectorAll('.mer-role').forEach(sel=>{
     const pk=sel.dataset.pk; if(S.editMinData.membros[pk]) S.editMinData.membros[pk].role=sel.value;
   });
@@ -1257,10 +1266,34 @@ window.saveMinConfig=async function(){
   if(!newName){ toast('Nome do ministério é obrigatório','er'); return; }
   S.editMinData.nome=newName;
   S.editMinData.pastor=document.getElementById('emPastor').value.trim();
+  // Detecta membros recém-adicionados (comparado ao estado atual em S.mins)
+  const oldMembros=(S.mins[S.editMinKey]?.membros)||{};
+  const newlyAdded=Object.keys(S.editMinData.membros||{}).filter(pk=>!oldMembros[pk]);
   try{
-    const {ref,set}=fbMods;
+    const {ref,set,update}=fbMods;
     await set(ref(S.db,`hermom/ministerios_config/${S.editMinKey}`),S.editMinData);
-    toast('Ministério salvo!','ok');
+    // Para cada membro novo, marca como "nao_membro" em todas reuniões passadas
+    if(newlyAdded.length){
+      const naoMembroUpdates={};
+      let count=0;
+      newlyAdded.forEach(pk=>{
+        Object.keys(S.meetings).forEach(meetKey=>{
+          if(!isReunionPast(meetKey)) return;
+          const existing=(S.presencas[meetKey]||{})[S.editMinKey]||{};
+          if(existing[pk]) return;
+          naoMembroUpdates[`hermom/presencas/${meetKey}/${S.editMinKey}/${pk}`]={status:'nao_membro',justificativa:''};
+          count++;
+        });
+      });
+      if(count>0){
+        await update(ref(S.db),naoMembroUpdates);
+        toast(`Ministério salvo. ${count} marcações "não era membro" aplicadas em reuniões passadas.`,'ok');
+      } else {
+        toast('Ministério salvo!','ok');
+      }
+    } else {
+      toast('Ministério salvo!','ok');
+    }
     closeOv('ovEditMin');
   }catch(e){ toast('Erro: '+e.message,'er'); }
 };
@@ -1470,20 +1503,19 @@ window.saveMember=async function(){
     const updates={};
     const pkClean=sk(nome);
     const pkOld=oldName?sk(oldName):pkClean;
+    const newlyAddedMins=[];
     Object.entries(S.mins).forEach(([minK,mv])=>{
       const wasIn=mv.membros && (mv.membros[mk] || mv.membros[pkOld] || mv.membros[pkClean]);
       const wants=selectedMins.has(minK);
       if(wants && !wasIn){
-        updates[`hermom/ministerios_config/${minK}/membros/${pkClean}`]={nome,role:'membro',badge:data.badge,cor:'normal',obs:''};
+        updates[`hermom/ministerios_config/${minK}/membros/${pkClean}`]={nome,role:'membro',badge:data.badge,obs:''};
+        newlyAddedMins.push(minK);
       } else if(!wants && wasIn){
-        // Remove any matching key
         if(mv.membros[mk]) updates[`hermom/ministerios_config/${minK}/membros/${mk}`]=null;
         if(mv.membros[pkOld]) updates[`hermom/ministerios_config/${minK}/membros/${pkOld}`]=null;
         if(pkClean!==pkOld && mv.membros[pkClean]) updates[`hermom/ministerios_config/${minK}/membros/${pkClean}`]=null;
       } else if(wants && wasIn){
-        // Update name if changed
         if(oldName && oldName!==nome){
-          // Rename key: delete old, add new
           const oldPk=mv.membros[pkOld]?pkOld:(mv.membros[mk]?mk:pkClean);
           const oldData=mv.membros[oldPk];
           if(oldData){
@@ -1493,8 +1525,24 @@ window.saveMember=async function(){
         }
       }
     });
+    // Para cada ministério novo, marca o cooperador como "nao_membro" em reuniões passadas
+    let naoMembroCount=0;
+    newlyAddedMins.forEach(minK=>{
+      Object.keys(S.meetings).forEach(meetKey=>{
+        if(!isReunionPast(meetKey)) return;
+        const existing=(S.presencas[meetKey]||{})[minK]||{};
+        if(existing[pkClean]) return;
+        updates[`hermom/presencas/${meetKey}/${minK}/${pkClean}`]={status:'nao_membro',justificativa:''};
+        naoMembroCount++;
+      });
+    });
     if(Object.keys(updates).length) await update(ref(S.db),updates);
-    toast(S.editMemberKey?'Cooperador atualizado':'Cooperador criado','ok');
+    const baseMsg=S.editMemberKey?'Cooperador atualizado':'Cooperador criado';
+    if(naoMembroCount>0){
+      toast(`${baseMsg}. ${naoMembroCount} marcações "não era membro" aplicadas em reuniões passadas.`,'ok');
+    } else {
+      toast(baseMsg,'ok');
+    }
     closeOv('ovMember');
   }catch(e){ toast('Erro: '+e.message,'er'); }
 };
