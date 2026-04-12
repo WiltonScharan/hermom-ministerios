@@ -2038,6 +2038,34 @@ window.exportCSV=function(){
   toast('CSV exportado','ok');
 };
 
+// Expor para debug via console
+window.S=S;
+window.diagExcluded=function(meetKey){
+  const md=S.presencas[meetKey]||{};
+  const names={};
+  Object.entries(S.mins).forEach(([mk,mv])=>{
+    Object.entries(mv.membros||{}).forEach(([pk,mm])=>{
+      const nome=mm.nome||pk;
+      if(!names[nome]) names[nome]=[];
+      const v=(md[mk]||{})[pk];
+      const {status}=decodeStatus(v);
+      names[nome].push({min:mv.nome,status:status||'(vazio)'});
+    });
+  });
+  const excluded=[],included=[];
+  Object.entries(names).forEach(([nome,list])=>{
+    const allNao=list.every(x=>x.status==='nao_membro');
+    if(allNao) excluded.push({nome,detalhes:list});
+    else included.push(nome);
+  });
+  console.log('=== Diagnóstico reunião',meetKey,'===');
+  console.log('Total nomes únicos em ministérios:',Object.keys(names).length);
+  console.log('Incluídos na contagem:',included.length);
+  console.log('Excluídos (todos "não era membro"):',excluded.length);
+  console.log('Lista de excluídos:',excluded);
+  return excluded;
+};
+
 // ============================== INIT ==============================
 if(localStorage.getItem('hermom_admin')==='1'){
   S.admin=true;
