@@ -86,9 +86,8 @@ body.adm .admbar{display:none}
 .fsel{border:1px solid var(--border);border-radius:var(--rs);padding:9px 13px;font-family:inherit;font-size:.82rem;background:var(--white);outline:none;cursor:pointer}
 .cb{font-size:.78rem;color:var(--gray);background:var(--grayl);padding:3px 11px;border-radius:18px;white-space:nowrap}
 .mg2{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
-.mcard{background:var(--white);border-radius:var(--rs);padding:14px 16px;box-shadow:var(--shs);border:1px solid transparent;transition:all .2s;cursor:default}
-body.adm .mcard{cursor:pointer}
-body.adm .mcard:hover{box-shadow:var(--sh);border-color:var(--border);transform:translateY(-1px)}
+.mcard{background:var(--white);border-radius:var(--rs);padding:14px 16px;box-shadow:var(--shs);border:1px solid transparent;transition:all .2s;cursor:pointer}
+.mcard:hover{box-shadow:var(--sh);border-color:var(--border);transform:translateY(-1px)}
 .mn{font-weight:600;font-size:.92rem;color:var(--navy);margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .bgi{font-size:.68rem;color:var(--green)}
 .mtags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
@@ -197,6 +196,22 @@ body.adm .mcard:hover{box-shadow:var(--sh);border-color:var(--border);transform:
 .md-bg.sim{background:var(--greenl);color:var(--green)}
 .md-bg.nao{background:var(--grayl);color:var(--gray)}
 .md-outros{font-size:.68rem;color:var(--gray);margin-top:2px;font-style:italic}
+.mdc-info{background:var(--cream);border-radius:var(--rs);padding:14px 16px;margin-top:6px}
+.mdc-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem;color:var(--navy)}
+.mdc-row:last-child{border-bottom:none}
+.mdc-label{color:var(--gray);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.wa-link{display:inline-flex;align-items:center;gap:5px;margin-left:10px;background:#25D366;color:#fff!important;text-decoration:none;padding:4px 10px;border-radius:14px;font-size:.74rem;font-weight:600;transition:all .15s}
+.wa-link:hover{background:#1ea454;transform:scale(1.05)}
+/* Sticky first column in Reunioes tables */
+.att td:first-child,.att th:first-child,.att tfoot td:first-child{position:sticky;left:0;z-index:2;box-shadow:2px 0 4px -2px rgba(0,0,0,.08)}
+.att td:first-child{background:var(--white)}
+.att tbody tr:hover td:first-child{background:var(--cream)}
+.att thead th:first-child{background:var(--navy);z-index:3}
+.att tfoot td:first-child{background:var(--cream2)}
+.mac td:first-child,.mac th:first-child{position:sticky;left:0;z-index:2;box-shadow:2px 0 4px -2px rgba(0,0,0,.08)}
+.mac td:first-child{background:var(--white)}
+.mac tbody tr:hover td:first-child{background:var(--cream)}
+.mac thead th:first-child{background:var(--navy);z-index:3}
 .mc{cursor:pointer}
 .mc:hover{box-shadow:var(--sh);transform:translateY(-1px);transition:all .15s}
 /* Roll-call (presença) styles */
@@ -383,6 +398,27 @@ body.adm #admBtn{display:none!important}
     <div class="mact">
       <button class="btn btn-s" onclick="closeOv('ovNewMeet')">Cancelar</button>
       <button class="btn btn-g" onclick="createMeeting()">Criar Reunião</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Detalhe do Cooperador (visualização) -->
+<div class="ov" id="ovMemberDetail">
+  <div class="mod">
+    <h3 id="mdcNome">—</h3>
+    <div class="mdc-info">
+      <div class="mdc-row"><span class="mdc-label">Data de nascimento</span><span id="mdcBirth">—</span></div>
+      <div class="mdc-row"><span class="mdc-label">Crachá</span><span id="mdcBadge">—</span></div>
+      <div class="mdc-row"><span class="mdc-label">Telefone</span><span id="mdcPhone">—</span></div>
+      <div id="mdcObsRow" class="mdc-row" style="display:none;flex-direction:column;align-items:flex-start"><span class="mdc-label">Observações</span><span id="mdcObs" style="margin-top:4px"></span></div>
+    </div>
+    <div class="mc-sec" style="margin-top:14px">Ministério(s) atuante</div>
+    <div class="mtags" id="mdcMinsAt"></div>
+    <div class="mc-sec gold" id="mdcRespLabel" style="display:none">Responsável por</div>
+    <div class="mtags" id="mdcMinsResp"></div>
+    <div class="mact">
+      <button class="btn btn-s" onclick="closeOv('ovMemberDetail')">Fechar</button>
+      <button class="btn btn-p adm-only" id="mdcEditBtn">Editar</button>
     </div>
   </div>
 </div>
@@ -1306,7 +1342,7 @@ window.filterMembros=function(){
     const pastorBlock=info.pastor.length
       ? `<div class="mc-sec gold">Responsável por</div><div class="mtags">${tagsPastor}</div>`
       : '';
-    return `<div class="mcard" onclick="openEditMember('${esc(mk)}')">
+    return `<div class="mcard" onclick="openMemberDetail('${esc(mk)}')">
       <div class="mn">${esc(m.nome)}${bg}</div>
       <div class="mc-sec">Ministério(s) atuante</div>
       <div class="mtags">${tagsParticipa}</div>
@@ -1347,6 +1383,43 @@ window.openNewMember=function(){
   renderMbMinsList(new Set());
   document.getElementById('mbDelBtn').style.display='none';
   showOv('ovMember');
+};
+
+window.openMemberDetail=function(mk){
+  const m=S.members[mk];
+  if(!m) return;
+  document.getElementById('mdcNome').textContent=m.nome||'—';
+  const birthStr=m.aniversario?m.aniversario.split('-').reverse().join('/'):'—';
+  document.getElementById('mdcBirth').textContent=birthStr;
+  document.getElementById('mdcBadge').innerHTML=m.badge?'<span style="color:var(--green);font-weight:600">● Recebido</span>':'<span style="color:var(--gray)">Não recebido</span>';
+  const phoneEl=document.getElementById('mdcPhone');
+  if(m.telefone){
+    const digits=m.telefone.replace(/\D/g,'');
+    const waNumber=digits.startsWith('55')?digits:'55'+digits;
+    phoneEl.innerHTML=`${esc(m.telefone)} <a class="wa-link" href="https://wa.me/${waNumber}" target="_blank" rel="noopener">💬 WhatsApp</a>`;
+  } else {
+    phoneEl.innerHTML='<span style="color:var(--gray)">—</span>';
+  }
+  if(m.obs){
+    document.getElementById('mdcObsRow').style.display='flex';
+    document.getElementById('mdcObs').textContent=m.obs;
+  } else {
+    document.getElementById('mdcObsRow').style.display='none';
+  }
+  const info=ministeriosDoCooperador(mk);
+  document.getElementById('mdcMinsAt').innerHTML=info.participa.length
+    ? info.participa.map(mn=>`<span class="mt">${esc(mn)}</span>`).join('')
+    : '<span class="mt">Sem ministério</span>';
+  if(info.pastor.length){
+    document.getElementById('mdcRespLabel').style.display='block';
+    document.getElementById('mdcMinsResp').innerHTML=info.pastor.map(mn=>`<span class="mt gold">${esc(mn)}</span>`).join('');
+  } else {
+    document.getElementById('mdcRespLabel').style.display='none';
+    document.getElementById('mdcMinsResp').innerHTML='';
+  }
+  const editBtn=document.getElementById('mdcEditBtn');
+  editBtn.onclick=()=>{ closeOv('ovMemberDetail'); openEditMember(mk); };
+  showOv('ovMemberDetail');
 };
 
 window.openEditMember=function(mk){
@@ -1669,21 +1742,40 @@ window.createMeeting=async function(){
 };
 
 // ============================== GERENCIAR REUNIÕES ==============================
+function uniqueMeetStats(meetKey){
+  // Conta pessoas únicas (não soma participações por ministério)
+  const meetData=S.presencas[meetKey]||{};
+  const byName={};
+  Object.entries(S.mins).forEach(([minKey,mv])=>{
+    const members=mv.membros||{};
+    const presData=meetData[minKey]||{};
+    Object.entries(members).forEach(([pk,m])=>{
+      const name=m.nome||pk;
+      if(!byName[name]) byName[name]=[];
+      const {status}=decodeStatus(presData[pk]);
+      byName[name].push(status);
+    });
+  });
+  let present=0, eligible=0;
+  Object.values(byName).forEach(statuses=>{
+    const allNao=statuses.every(s=>s==='nao_membro');
+    if(allNao) return;
+    eligible++;
+    if(statuses.some(s=>s==='presente')) present++;
+  });
+  return {present,eligible};
+}
+
 window.openManageMeetings=function(){
   if(!S.admin){ toast('Apenas administradores','er'); return; }
   const sorted=sortMeets(Object.keys(S.meetings));
   const rows=sorted.map(mk=>{
     const lbl=S.meetings[mk]?.data||mk;
-    // Contar presenças deste meeting
-    let totalPres=0, totalElig=0;
-    Object.entries(S.mins).forEach(([minKey,mv])=>{
-      const r=calcMeetStats((S.presencas[mk]||{})[minKey]||{},mv.membros);
-      totalPres+=r.present; totalElig+=r.eligible;
-    });
+    const u=uniqueMeetStats(mk);
     return `<div class="md-row" style="padding:12px 14px">
       <div>
         <div class="md-nm" style="font-size:.95rem">${esc(lbl)}</div>
-        <div style="font-size:.72rem;color:var(--gray);margin-top:2px">${totalPres} presentes de ${totalElig} elegíveis</div>
+        <div style="font-size:.72rem;color:var(--gray);margin-top:2px">${u.present} cooperadores presentes de ${u.eligible} (contagem única)</div>
       </div>
       <div style="display:flex;gap:6px">
         <button class="btn btn-s btn-sm" onclick="openEditMeeting('${esc(mk)}')">Editar</button>
