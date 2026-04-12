@@ -1593,25 +1593,51 @@ function renderSingleMeeting(minKey,membros,meetKey,canEdit){
   }
 }
 
+// Propagação: retorna as entries (minKey, pk) de todas as ocorrências desse cooperador em outros ministérios
+function findCooperadorOccurrences(currentMinKey,currentPk){
+  // Descobre o nome do cooperador
+  const curMin=S.mins[currentMinKey];
+  const memberObj=curMin?.membros?.[currentPk];
+  if(!memberObj) return [[currentMinKey,currentPk]];
+  const normalizedName=sk(memberObj.nome||'');
+  const occurrences=[];
+  Object.entries(S.mins).forEach(([minK,mv])=>{
+    if(!mv.membros) return;
+    Object.entries(mv.membros).forEach(([pk,m])=>{
+      if(sk(m.nome||'')===normalizedName) occurrences.push([minK,pk]);
+    });
+  });
+  return occurrences.length?occurrences:[[currentMinKey,currentPk]];
+}
+
+async function writePresenceToAllMins(currentMinKey,meetKey,pk,statusObj){
+  const {ref,update}=fbMods;
+  const occurrences=findCooperadorOccurrences(currentMinKey,pk);
+  const updates={};
+  occurrences.forEach(([minK,memberPk])=>{
+    updates[`hermom/presencas/${meetKey}/${minK}/${memberPk}`]=statusObj;
+  });
+  await update(ref(S.db),updates);
+  if(occurrences.length>1){
+    toast(`Marcação aplicada a ${occurrences.length} ministérios deste cooperador`,'ok');
+  }
+}
+
 window.setRcStatus=async function(minKey,meetKey,pk,code){
   if(!S.admin||!S.db) return;
   const status=code==='p'?'presente':code==='a'?'ausente':'nao_membro';
   try{
-    const {ref,set}=fbMods;
-    await set(ref(S.db,`hermom/presencas/${meetKey}/${minKey}/${pk}`),{status,justificativa:''});
+    await writePresenceToAllMins(minKey,meetKey,pk,{status,justificativa:''});
   }catch(e){toast('Erro: '+e.message,'er');}
 };
 window.setRcJust=async function(minKey,meetKey,pk,text){
   if(!S.admin||!S.db) return;
   const t=(text||'').trim();
   try{
-    const {ref,set}=fbMods;
-    if(t){
-      await set(ref(S.db,`hermom/presencas/${meetKey}/${minKey}/${pk}`),{status:'justificado',justificativa:t});
-    } else {
-      // Empty: revert to ausente (or clear)
-      await set(ref(S.db,`hermom/presencas/${meetKey}/${minKey}/${pk}`),{status:'ausente',justificativa:''});
-    }
+    const obj=t
+      ? {status:'justificado',justificativa:t}
+      : {status:'ausente',justificativa:''};
+    await writePresenceToAllMins(minKey,meetKey,pk,obj);
   }catch(e){toast('Erro: '+e.message,'er');}
 };
 
@@ -1775,7 +1801,7 @@ window.openManageMeetings=function(){
     return `<div class="md-row" style="padding:12px 14px">
       <div>
         <div class="md-nm" style="font-size:.95rem">${esc(lbl)}</div>
-        <div style="font-size:.72rem;color:var(--gray);margin-top:2px">${u.present} cooperadores presentes de ${u.eligible} (contagem única)</div>
+        <div style="font-size:.72rem;color:var(--gray);margin-top:2px">${u.present} presentes de ${u.eligible} cooperadores</div>
       </div>
       <div style="display:flex;gap:6px">
         <button class="btn btn-s btn-sm" onclick="openEditMeeting('${esc(mk)}')">Editar</button>
