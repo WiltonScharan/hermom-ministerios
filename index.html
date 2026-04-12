@@ -1269,33 +1269,42 @@ window.saveMinConfig=async function(){
   // Detecta membros recém-adicionados (comparado ao estado atual em S.mins)
   const oldMembros=(S.mins[S.editMinKey]?.membros)||{};
   const newlyAdded=Object.keys(S.editMinData.membros||{}).filter(pk=>!oldMembros[pk]);
+  console.log('[saveMinConfig] oldMembros keys:',Object.keys(oldMembros));
+  console.log('[saveMinConfig] newMembros keys:',Object.keys(S.editMinData.membros||{}));
+  console.log('[saveMinConfig] newlyAdded:',newlyAdded);
   try{
     const {ref,set,update}=fbMods;
     await set(ref(S.db,`hermom/ministerios_config/${S.editMinKey}`),S.editMinData);
     // Para cada membro novo, marca como "nao_membro" em todas reuniões passadas
     if(newlyAdded.length){
       const naoMembroUpdates={};
-      let count=0;
+      let count=0, pastFound=0, alreadySet=0;
+      const allMeetKeys=Object.keys(S.meetings);
+      console.log('[saveMinConfig] total reunioes:',allMeetKeys.length);
       newlyAdded.forEach(pk=>{
-        Object.keys(S.meetings).forEach(meetKey=>{
-          if(!isReunionPast(meetKey)) return;
+        allMeetKeys.forEach(meetKey=>{
+          const past=isReunionPast(meetKey);
+          if(!past) return;
+          pastFound++;
           const existing=(S.presencas[meetKey]||{})[S.editMinKey]||{};
-          if(existing[pk]) return;
+          if(existing[pk]){ alreadySet++; return; }
           naoMembroUpdates[`hermom/presencas/${meetKey}/${S.editMinKey}/${pk}`]={status:'nao_membro',justificativa:''};
           count++;
         });
       });
+      console.log('[saveMinConfig] pastFound:',pastFound,'alreadySet:',alreadySet,'willWrite:',count);
+      console.log('[saveMinConfig] updates:',naoMembroUpdates);
       if(count>0){
         await update(ref(S.db),naoMembroUpdates);
-        toast(`Ministério salvo. ${count} marcações "não era membro" aplicadas em reuniões passadas.`,'ok');
+        toast(`Ministério salvo. ${newlyAdded.length} membro(s) novo(s) × ${count/newlyAdded.length} reuniões passadas marcadas como "não era membro".`,'ok');
       } else {
-        toast('Ministério salvo!','ok');
+        toast(`Ministério salvo. (${newlyAdded.length} novo(s) mas nenhuma reunião passada precisava ser marcada)`,'ok');
       }
     } else {
-      toast('Ministério salvo!','ok');
+      toast('Ministério salvo (nenhum membro novo detectado).','ok');
     }
     closeOv('ovEditMin');
-  }catch(e){ toast('Erro: '+e.message,'er'); }
+  }catch(e){ console.error('[saveMinConfig] error',e); toast('Erro: '+e.message,'er'); }
 };
 
 window.deleteMin=function(){
@@ -1527,6 +1536,8 @@ window.saveMember=async function(){
     });
     // Para cada ministério novo, marca o cooperador como "nao_membro" em reuniões passadas
     let naoMembroCount=0;
+    console.log('[saveMember] pkClean:',pkClean,'newlyAddedMins:',newlyAddedMins);
+    console.log('[saveMember] total reunioes:',Object.keys(S.meetings).length);
     newlyAddedMins.forEach(minK=>{
       Object.keys(S.meetings).forEach(meetKey=>{
         if(!isReunionPast(meetKey)) return;
@@ -1536,15 +1547,19 @@ window.saveMember=async function(){
         naoMembroCount++;
       });
     });
+    console.log('[saveMember] naoMembroCount:',naoMembroCount);
+    console.log('[saveMember] all updates:',updates);
     if(Object.keys(updates).length) await update(ref(S.db),updates);
     const baseMsg=S.editMemberKey?'Cooperador atualizado':'Cooperador criado';
     if(naoMembroCount>0){
-      toast(`${baseMsg}. ${naoMembroCount} marcações "não era membro" aplicadas em reuniões passadas.`,'ok');
+      toast(`${baseMsg}. ${naoMembroCount} marcações "não era membro" em reuniões passadas.`,'ok');
+    } else if(newlyAddedMins.length>0){
+      toast(`${baseMsg}. Adicionado a ${newlyAddedMins.length} ministério(s) — nenhuma reunião passada a marcar.`,'ok');
     } else {
       toast(baseMsg,'ok');
     }
     closeOv('ovMember');
-  }catch(e){ toast('Erro: '+e.message,'er'); }
+  }catch(e){ console.error('[saveMember] error',e); toast('Erro: '+e.message,'er'); }
 };
 
 window.deleteMember=function(){
