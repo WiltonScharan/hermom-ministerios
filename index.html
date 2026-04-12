@@ -2062,7 +2062,9 @@ window.diagExcluded=function(meetKey){
   console.log('Total nomes únicos em ministérios:',Object.keys(names).length);
   console.log('Incluídos na contagem:',included.length);
   console.log('Excluídos (todos "não era membro"):',excluded.length);
-  console.log('Lista de excluídos:',excluded);
+  excluded.forEach((e,i)=>{
+    console.log(`  ${i+1}. ${e.nome} — ${e.detalhes.map(d=>d.min+':'+d.status).join(' | ')}`);
+  });
   return excluded;
 };
 
