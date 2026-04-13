@@ -1583,6 +1583,16 @@ window.saveMember=async function(){
         }
       }
     });
+    // Sincroniza crachá do cooperador → ministérios onde ele está
+    Object.entries(S.mins).forEach(([minK,mv])=>{
+      if(!mv.membros) return;
+      Object.entries(mv.membros).forEach(([memPk,mm])=>{
+        if(sk(mm.nome||'')===pkClean && !!mm.badge!==!!data.badge){
+          updates[`hermom/ministerios_config/${minK}/membros/${memPk}/badge`]=data.badge;
+        }
+      });
+    });
+
     // Para cada ministério novo, marca o cooperador como "nao_membro" em reuniões passadas
     let naoMembroCount=0;
     console.log('[saveMember] pkClean:',pkClean,'newlyAddedMins:',newlyAddedMins);
