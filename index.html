@@ -1281,6 +1281,30 @@ window.saveMinConfig=async function(){
   try{
     const {ref,set,update}=fbMods;
     await set(ref(S.db,`hermom/ministerios_config/${S.editMinKey}`),S.editMinData);
+    // Sincroniza crachá do ministério → cadastro do cooperador
+    const badgeSync={};
+    Object.entries(S.editMinData.membros||{}).forEach(([pk,m])=>{
+      const coop=Object.entries(S.members).find(([,cm])=>sk(cm.nome||'')===sk(m.nome||''));
+      if(coop){
+        const [coopKey,coopData]=coop;
+        if(!!m.badge!==!!coopData.badge){
+          // Se marcou crachá no ministério, atualiza o cooperador. Se desmarcou, só desmarca se não tem em outro ministério.
+          if(m.badge){
+            badgeSync[`hermom/members/${coopKey}/badge`]=true;
+          } else {
+            // Verifica se algum outro ministério tem badge true para esse cooperador
+            const anyOtherBadge=Object.entries(S.mins).some(([mk2,mv2])=>{
+              if(mk2===S.editMinKey) return false;
+              const mm=mv2.membros||{};
+              return Object.values(mm).some(x=>sk(x.nome||'')===sk(m.nome||'')&&x.badge);
+            });
+            if(!anyOtherBadge) badgeSync[`hermom/members/${coopKey}/badge`]=false;
+          }
+        }
+      }
+    });
+    if(Object.keys(badgeSync).length) await update(ref(S.db),badgeSync);
+
     // Limpa dados de presença dos membros removidos
     if(removed.length){
       const cleanupUpdates={};
