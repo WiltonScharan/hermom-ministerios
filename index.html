@@ -950,8 +950,8 @@ function renderMinDropdowns(){
   // Membros filter
   const mf=document.getElementById('mFilter');
   const mfc=mf.value;
-  while(mf.options.length>1) mf.remove(1);
-  Object.values(S.mins).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).forEach(mv=>{
+  while(mf.options.length>2) mf.remove(2); // preserva "Todos" e "Sem ministério"
+  Object.values(S.mins).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt',{sensitivity:'base'})).forEach(mv=>{
     const o=document.createElement('option'); o.value=mv.nome; o.textContent=mv.nome; mf.appendChild(o);
   });
   if(mfc) mf.value=mfc;
