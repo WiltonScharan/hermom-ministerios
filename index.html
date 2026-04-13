@@ -318,6 +318,7 @@ body.adm #admBtn{display:none!important}
       <input type="search" class="sinp" id="mSearch" placeholder="Buscar por nome..." oninput="filterMembros()">
       <select class="fsel" id="mFilter" onchange="filterMembros()">
         <option value="">Todos os ministérios</option>
+        <option value="__sem__">Sem ministério</option>
       </select>
       <select class="fsel" id="mBadgeFilter" onchange="filterMembros()">
         <option value="">Crachá: todos</option>
@@ -1410,7 +1411,11 @@ window.filterMembros=function(){
     if(badgeF==='nao' && m.badge) return false;
     if(minF){
       const info=ministeriosDoCooperador(mk);
-      if(!info.participa.includes(minF) && !info.pastor.includes(minF)) return false;
+      if(minF==='__sem__'){
+        if(info.participa.length>0) return false;
+      } else {
+        if(!info.participa.includes(minF) && !info.pastor.includes(minF)) return false;
+      }
     }
     return true;
   }).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'}));
