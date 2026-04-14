@@ -1216,7 +1216,11 @@ window.openEditMin=function(mk){
 function renderEditMinList(){
   const membros=S.editMinData.membros||{};
   const sorted=sortMemberEntries(Object.entries(membros));
-  const html=sorted.map(([pk,m])=>`
+  const html=sorted.map(([pk,m])=>{
+    // Le o cracha do cadastro do cooperador (fonte unica de verdade)
+    const coop=Object.values(S.members).find(cm=>sk(cm.nome||'')===sk(m.nome||''));
+    const hasBadge=coop?!!coop.badge:!!m.badge;
+    return `
     <div class="mer" id="em_${esc(pk)}">
       <div class="mer-nm" title="${esc(m.nome)}">${esc(m.nome)}</div>
       <select class="mer-role" data-pk="${esc(pk)}" title="Função">
@@ -1225,11 +1229,12 @@ function renderEditMinList(){
         <option value="membro"${m.role==='membro'||!m.role?' selected':''}>Membro</option>
       </select>
       <label title="Crachá recebido" style="display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--gray);white-space:nowrap">
-        <input type="checkbox" data-pk="${esc(pk)}" class="mer-badge"${m.badge?' checked':''}> Crachá
+        <input type="checkbox" data-pk="${esc(pk)}" class="mer-badge"${hasBadge?' checked':''}> Crachá
       </label>
       <input type="text" class="mer-obs" placeholder="Observação..." value="${esc(m.obs||'')}" data-pk="${esc(pk)}">
       <button class="btn btn-d btn-sm" onclick="removeFromMin('${esc(pk)}')">Remover</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   document.getElementById('emList').innerHTML=html||'<div style="text-align:center;padding:20px;color:var(--gray);font-size:.85rem">Nenhum membro neste ministério ainda</div>';
 }
 
