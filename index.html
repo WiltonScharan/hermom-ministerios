@@ -198,6 +198,9 @@ body.adm .admbar{display:none}
 .md-bg.sim{background:var(--greenl);color:var(--green)}
 .md-bg.nao{background:var(--grayl);color:var(--gray)}
 .md-outros{font-size:.68rem;color:var(--gray);margin-top:2px;font-style:italic}
+.avatar{display:inline-block;border-radius:50%;object-fit:cover;vertical-align:middle;background:var(--grayl);flex-shrink:0}
+.avatar.ini{color:var(--navy);font-weight:700;display:inline-flex;align-items:center;justify-content:center;letter-spacing:-.02em}
+.avatar-lg{width:84px;height:84px;border:3px solid var(--cream2);box-shadow:var(--shs)}
 .mdc-info{background:var(--cream);border-radius:var(--rs);padding:14px 16px;margin-top:6px}
 .mdc-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem;color:var(--navy)}
 .mdc-row:last-child{border-bottom:none}
@@ -217,8 +220,8 @@ body.adm .admbar{display:none}
 .mc{cursor:pointer}
 .mc:hover{box-shadow:var(--sh);transform:translateY(-1px);transition:all .15s}
 /* Roll-call (presença) styles */
-.rc-row{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border)}
-body:not(.adm) .rc-row{grid-template-columns:1fr auto 1fr}
+.rc-row{display:grid;grid-template-columns:auto minmax(180px,1fr) auto minmax(160px,1fr);gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border)}
+body:not(.adm) .rc-row{grid-template-columns:minmax(180px,1fr) auto minmax(160px,1fr)}
 .rc-rm{background:var(--redl);color:var(--red);border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.78rem;font-weight:700;transition:all .15s;padding:0;line-height:1;display:flex;align-items:center;justify-content:center}
 .rc-rm:hover{background:var(--red);color:#fff;transform:scale(1.1)}
 .rc-row:last-child{border-bottom:none}
@@ -411,7 +414,7 @@ body.adm #admBtn{display:none!important}
 <!-- MODAL: Detalhe do Cooperador (visualização) -->
 <div class="ov" id="ovMemberDetail">
   <div class="mod">
-    <h3 id="mdcNome">—</h3>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px"><span id="mdcAvatar"></span><h3 id="mdcNome" style="margin:0">—</h3></div>
     <div class="mdc-info">
       <div class="mdc-row"><span class="mdc-label">Data de nascimento</span><span id="mdcBirth">—</span></div>
       <div class="mdc-row"><span class="mdc-label">Crachá</span><span id="mdcBadge">—</span></div>
@@ -487,6 +490,7 @@ body.adm #admBtn{display:none!important}
     <h3 id="mbTitle">Novo Cooperador</h3>
     <p class="sub">Cadastre os dados do cooperador e marque os ministérios em que ele atua.</p>
     <div class="fld"><label>Nome completo</label><input id="mbName" placeholder="Ex: João Pedro"></div>
+    <div class="fld"><label>Foto (URL)</label><input id="mbFoto" placeholder="Cole o link da imagem (opcional)"></div>
     <div class="fld row">
       <div><label>Telefone / WhatsApp</label><input id="mbPhone" placeholder="(11) 99999-9999"></div>
       <div><label>Aniversário</label><input type="date" id="mbBirth"></div>
@@ -627,6 +631,22 @@ function sortMemberEntries(entries){
     return (a[1]?.nome||a[0]||'').localeCompare(b[1]?.nome||b[0]||'','pt',{sensitivity:'base'});
   });
 }
+function fotoDoCooperador(nome){
+  if(!nome) return '';
+  const pkn=sk(nome);
+  const coop=Object.values(S.members).find(cm=>sk(cm.nome||'')===pkn);
+  return coop?.foto||'';
+}
+function avatarHtml(nome,size){
+  const s=size||32;
+  const foto=fotoDoCooperador(nome);
+  const ini=(nome||'?').split(/\s+/).slice(0,2).map(p=>p[0]||'').join('').toUpperCase()||'?';
+  if(foto){
+    return `<img src="${esc(foto)}" alt="" class="avatar" style="width:${s}px;height:${s}px" onerror="this.outerHTML='<span class=\\'avatar ini\\' style=\\'width:${s}px;height:${s}px;font-size:${Math.max(10,s*0.4)}px\\'>'+this.alt+'</span>'">`;
+  }
+  return `<span class="avatar ini" style="width:${s}px;height:${s}px;font-size:${Math.max(10,s*0.4)}px">${esc(ini)}</span>`;
+}
+
 function ministeriosDoCooperador(memberKey){
   // Retorna {participa:[], pastor:[]} baseado em S.mins e S.members
   const mem=S.members[memberKey];
@@ -833,7 +853,7 @@ async function seedFirebase(m){
   // Members
   const membersObj={};
   SD_MEMBERS.forEach(mem=>{
-    membersObj[`m_${mem.id}`]={nome:mem.nome,telefone:'',aniversario:'',badge:false,badgeData:'',cor:'normal',obs:''};
+    membersObj[`m_${mem.id}`]={nome:mem.nome,foto:'',telefone:'',aniversario:'',badge:false,badgeData:'',cor:'normal',obs:''};
   });
   await set(ref(db,'hermom/members'),membersObj);
   // Ministries com roles e pastores do Excel
@@ -910,7 +930,7 @@ function updateWarn(){
 function loadLocalSeed(){
   S.members={};
   SD_MEMBERS.forEach(mem=>{
-    S.members[`m_${mem.id}`]={nome:mem.nome,telefone:'',aniversario:'',badge:false,badgeData:'',cor:'normal',obs:''};
+    S.members[`m_${mem.id}`]={nome:mem.nome,foto:'',telefone:'',aniversario:'',badge:false,badgeData:'',cor:'normal',obs:''};
   });
   S.mins={};
   Object.entries(SD_MC).forEach(([mk,mv])=>{
@@ -1186,7 +1206,7 @@ window.openMinDetail=function(mk){
     const outrosStr=outros.length
       ? `<div class="md-outros">também em: ${esc(outros.join(' · '))}</div>`
       : '';
-    return `<div class="md-row"><div><div class="md-nm">${esc(m.nome)}</div>${outrosStr}</div>${bg}</div>`;
+    return `<div class="md-row"><div style="display:flex;align-items:center;gap:10px">${avatarHtml(m.nome,32)}<div><div class="md-nm">${esc(m.nome)}</div>${outrosStr}</div></div>${bg}</div>`;
   }).join('');
   let html='';
   if(lideres.length) html+=`<div class="md-sec">Líder${lideres.length>1?'es':''} (${lideres.length})</div>${renderGroup(lideres)}`;
@@ -1438,7 +1458,7 @@ window.filterMembros=function(){
       ? `<div class="mc-sec gold">Responsável por</div><div class="mtags">${tagsPastor}</div>`
       : '';
     return `<div class="mcard" onclick="openMemberDetail('${esc(mk)}')">
-      <div class="mn">${esc(m.nome)}${bg}</div>
+      <div class="mn" style="gap:10px">${avatarHtml(m.nome,36)}<span>${esc(m.nome)}${bg}</span></div>
       <div class="mc-sec">Ministério(s) atuante</div>
       <div class="mtags">${tagsParticipa}</div>
       ${pastorBlock}
@@ -1471,6 +1491,7 @@ window.openNewMember=function(){
   S.editMemberKey='';
   document.getElementById('mbTitle').textContent='Novo Cooperador';
   document.getElementById('mbName').value='';
+  document.getElementById('mbFoto').value='';
   document.getElementById('mbPhone').value='';
   document.getElementById('mbBirth').value='';
   document.getElementById('mbBadge').value='nao';
@@ -1484,6 +1505,7 @@ window.openMemberDetail=function(mk){
   const m=S.members[mk];
   if(!m) return;
   document.getElementById('mdcNome').textContent=m.nome||'—';
+  document.getElementById('mdcAvatar').innerHTML=avatarHtml(m.nome,84).replace('class="avatar"','class="avatar avatar-lg"').replace('class=\\\'avatar ini\\\'','class=\\\'avatar ini avatar-lg\\\'');
   const birthStr=m.aniversario?m.aniversario.split('-').reverse().join('/'):'—';
   document.getElementById('mdcBirth').textContent=birthStr;
   document.getElementById('mdcBadge').innerHTML=m.badge?'<span style="color:var(--green);font-weight:600">● Recebido</span>':'<span style="color:var(--gray)">Não recebido</span>';
@@ -1525,6 +1547,7 @@ window.openEditMember=function(mk){
   S.editMemberKey=mk;
   document.getElementById('mbTitle').textContent='Editar Cooperador';
   document.getElementById('mbName').value=m.nome||'';
+  document.getElementById('mbFoto').value=m.foto||'';
   document.getElementById('mbPhone').value=m.telefone||'';
   document.getElementById('mbBirth').value=m.aniversario||'';
   document.getElementById('mbBadge').value=m.badge?'sim':'nao';
@@ -1539,6 +1562,7 @@ window.saveMember=async function(){
   if(!nome){ toast('Nome é obrigatório','er'); return; }
   const data={
     nome,
+    foto:document.getElementById('mbFoto').value.trim(),
     telefone:document.getElementById('mbPhone').value.trim(),
     aniversario:document.getElementById('mbBirth').value,
     badge:document.getElementById('mbBadge').value==='sim',
@@ -1687,9 +1711,12 @@ function renderSingleMeeting(minKey,membros,meetKey,canEdit){
       const roleColor=m.role==='lider'?'var(--gold)':m.role==='colider'?'var(--navy2)':'var(--gray)';
       rows+=`<div class="rc-row" id="rc_${esc(pk)}">
         <button class="rc-rm adm-only" title="Remover do ministério" onclick="removeFromMinInline('${esc(minKey)}','${esc(pk)}','${esc((m.nome||'').replace(/'/g,"\\'"))}')">✕</button>
-        <div>
-          <div class="rc-nm">${esc(m.nome)}${m.badge?' <span style="color:var(--green);font-size:.7rem">●</span>':''}</div>
-          <div class="rc-rt" style="color:${roleColor}">${rl}</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${avatarHtml(m.nome,36)}
+          <div>
+            <div class="rc-nm">${esc(m.nome)}${m.badge?' <span style="color:var(--green);font-size:.7rem">●</span>':''}</div>
+            <div class="rc-rt" style="color:${roleColor}">${rl}</div>
+          </div>
         </div>
         <div class="rc-btns">
           <button class="rc-btn p${status==='presente'?' on':''}" onclick="setRcStatus('${esc(minKey)}','${esc(meetKey)}','${esc(pk)}','p')">Presente</button>
