@@ -207,6 +207,13 @@ body.adm .admbar{display:none}
 .foto-preview img{width:100%;height:100%;object-fit:cover}
 .foto-actions{flex:1}
 .foto-hint{font-size:.82rem;color:var(--gray);margin-bottom:6px}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:1000;cursor:zoom-out;padding:24px;animation:lbIn .15s ease}
+.lb.on{display:flex}
+.lb img{max-width:92vw;max-height:92vh;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);object-fit:contain}
+.lb-close{position:absolute;top:20px;right:24px;background:rgba(255,255,255,.15);border:none;color:#fff;width:42px;height:42px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lb-close:hover{background:rgba(255,255,255,.3)}
+@keyframes lbIn{from{opacity:0}to{opacity:1}}
+img.avatar{cursor:zoom-in}
 .mdc-info{background:var(--cream);border-radius:var(--rs);padding:14px 16px;margin-top:6px}
 .mdc-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem;color:var(--navy)}
 .mdc-row:last-child{border-bottom:none}
@@ -582,6 +589,12 @@ body.adm #admBtn{display:none!important}
   </div>
 </div>
 
+<!-- LIGHTBOX (zoom da foto) -->
+<div class="lb" id="lightbox" onclick="closeLb()">
+  <img id="lbImg" src="" alt="Foto ampliada">
+  <button class="lb-close" onclick="closeLb();event.stopPropagation()">✕</button>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -659,10 +672,27 @@ function avatarHtml(nome,size){
   const foto=fotoDoCooperador(nome);
   const ini=(nome||'?').split(/\s+/).slice(0,2).map(p=>p[0]||'').join('').toUpperCase()||'?';
   if(foto){
-    return `<img src="${esc(foto)}" alt="" class="avatar" style="width:${s}px;height:${s}px" onerror="this.outerHTML='<span class=\\'avatar ini\\' style=\\'width:${s}px;height:${s}px;font-size:${Math.max(10,s*0.4)}px\\'>'+this.alt+'</span>'">`;
+    return `<img src="${esc(foto)}" alt="${esc(ini)}" class="avatar" style="width:${s}px;height:${s}px" onclick="event.stopPropagation();zoomFoto(this.src)" onerror="this.outerHTML='<span class=\\'avatar ini\\' style=\\'width:${s}px;height:${s}px;font-size:${Math.max(10,s*0.4)}px\\'>'+this.alt+'</span>'">`;
   }
   return `<span class="avatar ini" style="width:${s}px;height:${s}px;font-size:${Math.max(10,s*0.4)}px">${esc(ini)}</span>`;
 }
+window.zoomFoto=function(src){
+  if(!src) return;
+  const lb=document.getElementById('lightbox');
+  document.getElementById('lbImg').src=src;
+  lb.classList.add('on');
+};
+window.closeLb=function(){
+  const lb=document.getElementById('lightbox');
+  lb.classList.remove('on');
+  document.getElementById('lbImg').src='';
+};
+document.addEventListener('keydown',(e)=>{
+  if(e.key==='Escape'){
+    const lb=document.getElementById('lightbox');
+    if(lb&&lb.classList.contains('on')) closeLb();
+  }
+});
 
 function ministeriosDoCooperador(memberKey){
   // Retorna {participa:[], pastor:[]} baseado em S.mins e S.members
@@ -1572,7 +1602,7 @@ function updateFotoPreview(fotoUrl){
   const removeBtn=document.getElementById('fotoRemoveBtn');
   if(!preview) return;
   if(fotoUrl){
-    preview.innerHTML=`<img src="${esc(fotoUrl)}" alt="">`;
+    preview.innerHTML=`<img src="${esc(fotoUrl)}" alt="" style="cursor:zoom-in" onclick="event.stopPropagation();zoomFoto(this.src)">`;
     if(removeBtn) removeBtn.style.display='inline-block';
   } else {
     preview.innerHTML='<span>+ Foto</span>';
