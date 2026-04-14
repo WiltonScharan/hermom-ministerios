@@ -201,6 +201,12 @@ body.adm .admbar{display:none}
 .avatar{display:inline-block;border-radius:50%;object-fit:cover;vertical-align:middle;background:var(--grayl);flex-shrink:0}
 .avatar.ini{color:var(--navy);font-weight:700;display:inline-flex;align-items:center;justify-content:center;letter-spacing:-.02em}
 .avatar-lg{width:84px;height:84px;border:3px solid var(--cream2);box-shadow:var(--shs)}
+.foto-upload{display:flex;align-items:center;gap:14px;padding:12px 14px;border:2px dashed var(--border);border-radius:var(--rs);cursor:pointer;transition:all .15s;background:var(--cream)}
+.foto-upload:hover,.foto-upload.drag{border-color:var(--navy2);background:#fff}
+.foto-preview{width:72px;height:72px;border-radius:50%;background:#fff;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--gray);font-size:.78rem;font-weight:600;overflow:hidden;flex-shrink:0}
+.foto-preview img{width:100%;height:100%;object-fit:cover}
+.foto-actions{flex:1}
+.foto-hint{font-size:.82rem;color:var(--gray);margin-bottom:6px}
 .mdc-info{background:var(--cream);border-radius:var(--rs);padding:14px 16px;margin-top:6px}
 .mdc-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem;color:var(--navy)}
 .mdc-row:last-child{border-bottom:none}
@@ -490,7 +496,18 @@ body.adm #admBtn{display:none!important}
     <h3 id="mbTitle">Novo Cooperador</h3>
     <p class="sub">Cadastre os dados do cooperador e marque os ministérios em que ele atua.</p>
     <div class="fld"><label>Nome completo</label><input id="mbName" placeholder="Ex: João Pedro"></div>
-    <div class="fld"><label>Foto (URL)</label><input id="mbFoto" placeholder="Cole o link da imagem (opcional)"></div>
+    <div class="fld">
+      <label>Foto</label>
+      <div class="foto-upload" id="fotoUpload">
+        <div class="foto-preview" id="fotoPreview"><span>+ Foto</span></div>
+        <div class="foto-actions">
+          <div class="foto-hint">Clique para selecionar ou arraste uma imagem aqui</div>
+          <button type="button" class="btn btn-s btn-sm" id="fotoRemoveBtn" style="display:none">Remover foto</button>
+        </div>
+        <input type="file" id="mbFotoFile" accept="image/*" style="display:none">
+      </div>
+      <input type="hidden" id="mbFoto">
+    </div>
     <div class="fld row">
       <div><label>Telefone / WhatsApp</label><input id="mbPhone" placeholder="(11) 99999-9999"></div>
       <div><label>Aniversário</label><input type="date" id="mbBirth"></div>
@@ -1485,6 +1502,84 @@ function currentMemberMinKeys(memberKey){
   return set;
 }
 
+function setupFotoUpload(){
+  const zone=document.getElementById('fotoUpload');
+  if(!zone || zone._setup) return;
+  zone._setup=true;
+  const fileInput=document.getElementById('mbFotoFile');
+  const removeBtn=document.getElementById('fotoRemoveBtn');
+  if(!window.FileReader || !window.HTMLCanvasElement){
+    zone.innerHTML='<div style="color:var(--red);font-size:.82rem;padding:10px">Seu navegador não suporta upload de fotos. Atualize para uma versão mais recente.</div>';
+    return;
+  }
+  const processFile=(file)=>{
+    if(!file) return;
+    if(!file.type || !file.type.startsWith('image/')){
+      toast('Arquivo não suportado. Envie uma imagem (JPG, PNG, WebP ou GIF).','er');
+      return;
+    }
+    if(file.size>10*1024*1024){
+      toast('Imagem muito grande (máximo 10MB).','er');
+      return;
+    }
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const max=300;
+        const ratio=Math.min(max/img.width,max/img.height,1);
+        const w=Math.max(1,Math.round(img.width*ratio));
+        const h=Math.max(1,Math.round(img.height*ratio));
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        let dataUrl;
+        try{ dataUrl=canvas.toDataURL('image/jpeg',0.82); }
+        catch(e){ toast('Falha ao processar a imagem','er'); return; }
+        document.getElementById('mbFoto').value=dataUrl;
+        updateFotoPreview(dataUrl);
+      };
+      img.onerror=()=>toast('Não foi possível ler esta imagem','er');
+      img.src=ev.target.result;
+    };
+    reader.onerror=()=>toast('Falha ao ler o arquivo','er');
+    reader.readAsDataURL(file);
+  };
+  zone.addEventListener('click',(e)=>{
+    if(e.target.id==='fotoRemoveBtn') return;
+    fileInput.click();
+  });
+  fileInput.addEventListener('change',(e)=>{
+    processFile(e.target.files&&e.target.files[0]);
+    fileInput.value='';
+  });
+  zone.addEventListener('dragover',(e)=>{ e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+  zone.addEventListener('drop',(e)=>{
+    e.preventDefault();
+    zone.classList.remove('drag');
+    processFile(e.dataTransfer.files&&e.dataTransfer.files[0]);
+  });
+  removeBtn.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    document.getElementById('mbFoto').value='';
+    updateFotoPreview('');
+  });
+}
+function updateFotoPreview(fotoUrl){
+  const preview=document.getElementById('fotoPreview');
+  const removeBtn=document.getElementById('fotoRemoveBtn');
+  if(!preview) return;
+  if(fotoUrl){
+    preview.innerHTML=`<img src="${esc(fotoUrl)}" alt="">`;
+    if(removeBtn) removeBtn.style.display='inline-block';
+  } else {
+    preview.innerHTML='<span>+ Foto</span>';
+    if(removeBtn) removeBtn.style.display='none';
+  }
+}
+
 window.openNewMember=function(){
   if(!S.admin) return;
   if(!S.db){ toast('Aguarde a conexão com Firebase','er'); return; }
@@ -1492,6 +1587,8 @@ window.openNewMember=function(){
   document.getElementById('mbTitle').textContent='Novo Cooperador';
   document.getElementById('mbName').value='';
   document.getElementById('mbFoto').value='';
+  setupFotoUpload();
+  updateFotoPreview('');
   document.getElementById('mbPhone').value='';
   document.getElementById('mbBirth').value='';
   document.getElementById('mbBadge').value='nao';
@@ -1548,6 +1645,8 @@ window.openEditMember=function(mk){
   document.getElementById('mbTitle').textContent='Editar Cooperador';
   document.getElementById('mbName').value=m.nome||'';
   document.getElementById('mbFoto').value=m.foto||'';
+  setupFotoUpload();
+  updateFotoPreview(m.foto||'');
   document.getElementById('mbPhone').value=m.telefone||'';
   document.getElementById('mbBirth').value=m.aniversario||'';
   document.getElementById('mbBadge').value=m.badge?'sim':'nao';
