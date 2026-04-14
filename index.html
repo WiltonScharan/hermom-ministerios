@@ -1742,10 +1742,38 @@ window.saveMember=async function(){
           if(oldData){
             updates[`hermom/ministerios_config/${minK}/membros/${oldPk}`]=null;
             updates[`hermom/ministerios_config/${minK}/membros/${pkClean}`]={...oldData,nome};
+            // Migra historico de presenca da chave antiga para a nova
+            if(oldPk!==pkClean){
+              Object.keys(S.meetings).forEach(meetKey=>{
+                const pd=(S.presencas[meetKey]||{})[minK]||{};
+                if(pd[oldPk]){
+                  updates[`hermom/presencas/${meetKey}/${minK}/${pkClean}`]=pd[oldPk];
+                  updates[`hermom/presencas/${meetKey}/${minK}/${oldPk}`]=null;
+                }
+              });
+            }
           }
         }
       }
     });
+    // Auto-cura: procura presencas orfas cuja chave comeca com o primeiro nome do cooperador
+    // Util quando renomeou anteriormente sem migrar
+    const firstWord=sk((nome||'').split(/\s+/)[0]||'');
+    if(firstWord && firstWord!==pkClean){
+      Object.entries(S.mins).forEach(([minK,mv])=>{
+        if(!mv.membros || !mv.membros[pkClean]) return; // cooperador precisa estar nesse ministerio
+        // Se a chave firstWord esta sendo usada por OUTRO membro nesse ministerio, nao migrar
+        const firstWordMember=mv.membros[firstWord];
+        if(firstWordMember && sk(firstWordMember.nome||'')!==pkClean) return;
+        Object.keys(S.meetings).forEach(meetKey=>{
+          const pd=(S.presencas[meetKey]||{})[minK]||{};
+          if(pd[firstWord] && !pd[pkClean]){
+            updates[`hermom/presencas/${meetKey}/${minK}/${pkClean}`]=pd[firstWord];
+            updates[`hermom/presencas/${meetKey}/${minK}/${firstWord}`]=null;
+          }
+        });
+      });
+    }
     // Sincroniza crachá do cooperador → ministérios onde ele está
     Object.entries(S.mins).forEach(([minK,mv])=>{
       if(!mv.membros) return;
