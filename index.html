@@ -1281,27 +1281,28 @@ window.saveMinConfig=async function(){
   try{
     const {ref,set,update}=fbMods;
     await set(ref(S.db,`hermom/ministerios_config/${S.editMinKey}`),S.editMinData);
-    // Sincroniza crachá do ministério → cadastro do cooperador
+    // Sincroniza crachá do ministério → cadastro do cooperador E → outros ministérios
     const badgeSync={};
     Object.entries(S.editMinData.membros||{}).forEach(([pk,m])=>{
-      const coop=Object.entries(S.members).find(([,cm])=>sk(cm.nome||'')===sk(m.nome||''));
+      const nomeNorm=sk(m.nome||'');
+      // 1) Atualiza o cadastro do cooperador
+      const coop=Object.entries(S.members).find(([,cm])=>sk(cm.nome||'')===nomeNorm);
       if(coop){
         const [coopKey,coopData]=coop;
         if(!!m.badge!==!!coopData.badge){
-          // Se marcou crachá no ministério, atualiza o cooperador. Se desmarcou, só desmarca se não tem em outro ministério.
-          if(m.badge){
-            badgeSync[`hermom/members/${coopKey}/badge`]=true;
-          } else {
-            // Verifica se algum outro ministério tem badge true para esse cooperador
-            const anyOtherBadge=Object.entries(S.mins).some(([mk2,mv2])=>{
-              if(mk2===S.editMinKey) return false;
-              const mm=mv2.membros||{};
-              return Object.values(mm).some(x=>sk(x.nome||'')===sk(m.nome||'')&&x.badge);
-            });
-            if(!anyOtherBadge) badgeSync[`hermom/members/${coopKey}/badge`]=false;
-          }
+          badgeSync[`hermom/members/${coopKey}/badge`]=!!m.badge;
         }
       }
+      // 2) Propaga para as ocorrências do cooperador em outros ministérios
+      Object.entries(S.mins).forEach(([minK2,mv2])=>{
+        if(minK2===S.editMinKey) return;
+        if(!mv2.membros) return;
+        Object.entries(mv2.membros).forEach(([pk2,mm2])=>{
+          if(sk(mm2.nome||'')===nomeNorm && !!mm2.badge!==!!m.badge){
+            badgeSync[`hermom/ministerios_config/${minK2}/membros/${pk2}/badge`]=!!m.badge;
+          }
+        });
+      });
     });
     if(Object.keys(badgeSync).length) await update(ref(S.db),badgeSync);
 
