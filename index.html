@@ -267,6 +267,20 @@ body:not(.adm) .rc-row{grid-template-columns:minmax(180px,1fr) auto minmax(160px
 .cat-sep{grid-column:1/-1;font-size:.7rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;padding:14px 4px 6px;border-top:1px dashed var(--border);margin-top:10px}
 .cat-sep:first-child{border-top:none;padding-top:0;margin-top:0}
 .cat-sep small{font-weight:400;color:var(--gray);text-transform:none;letter-spacing:0;margin-left:6px}
+.anot-section{background:var(--white);border-radius:var(--r);box-shadow:var(--shs);padding:20px;margin-bottom:18px}
+.anot-section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.anot-section-head h3{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--navy);font-weight:700;margin:0}
+.anot-section-head h3 small{font-family:'IBM Plex Sans',sans-serif;font-weight:400;font-size:.8rem;color:var(--gray);margin-left:6px}
+.ata-card,.lista-card{background:var(--cream);border-radius:var(--rs);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.ata-card:hover,.lista-card:hover{background:#fff;box-shadow:var(--shs);border-left-color:var(--gold)}
+.ata-head,.lista-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.ata-titulo,.lista-titulo{font-weight:600;color:var(--navy);font-size:.95rem}
+.ata-date,.lista-date{font-size:.78rem;color:var(--gold);font-weight:600;white-space:nowrap}
+.ata-preview{font-size:.82rem;color:var(--gray);line-height:1.4;max-height:48px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:pre-wrap}
+.lista-stats{font-size:.74rem;color:var(--gray);display:flex;gap:14px}
+.empty-state{padding:32px 20px;text-align:center;color:var(--gray);font-size:.88rem;background:var(--cream);border-radius:var(--rs);border:1px dashed var(--border)}
+textarea{font-family:inherit;border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:.92rem;outline:none;color:var(--navy);background:var(--white);width:100%;resize:vertical;line-height:1.5}
+textarea:focus{border-color:var(--navy2)}
 body:not(.adm) .adm-only{display:none!important}
 body.adm #admBtn{display:none!important}
 body:not(.lead) .lead-only{display:none!important}
@@ -276,6 +290,7 @@ body.adm #leadBtn{display:none!important}
 .lead-badge{background:rgba(74,222,128,.2);color:#a7f3d0;padding:4px 10px;border-radius:12px;font-size:.72rem;font-weight:600}
 body:not(.pas) .pas-only{display:none!important}
 body.pas .adm-only{display:none!important}
+body.pas .private-only{display:none!important}
 .pas-badge{background:rgba(167,139,250,.25);color:#c4b5fd;padding:4px 10px;border-radius:12px;font-size:.7rem;font-weight:700;letter-spacing:.04em}
 .btn-pas{background:#5b21b6;color:#fff}
 .btn-pas:hover{background:#4c1d95}
@@ -347,6 +362,7 @@ body.adm .gate, body.lead .gate, body.pas .gate{display:none}
     <button class="nb" onclick="ST('ministerios',this)">Ministérios</button>
     <button class="nb" onclick="ST('membros',this)">Cooperadores</button>
     <button class="nb" onclick="ST('presenca',this)">Reuniões</button>
+    <button class="nb private-only" onclick="ST('anotacoes',this)">Minhas Anotações</button>
   </nav>
   <div class="hdr-r">
     <div class="rt-dot off adm-only" id="rtDot" title="Status Firebase"></div>
@@ -455,6 +471,22 @@ body.adm .gate, body.lead .gate, body.pas .gate{display:none}
     </div>
   </div>
 </div>
+
+  <!-- ANOTAÇÕES -->
+  <div class="tab" id="tab-anotacoes">
+    <div class="ph">
+      <div class="pt">Minhas Anotações <small id="anot-meta"></small></div>
+    </div>
+    <div class="adm-only" style="margin-bottom:18px">
+      <label style="font-size:.78rem;color:var(--gray);font-weight:600;display:block;margin-bottom:4px">Ministério</label>
+      <select id="anotMin" class="fsel" style="min-width:280px" onchange="renderAnotacoes()">
+        <option value="">— Selecione —</option>
+      </select>
+    </div>
+    <div id="anotContent">
+      <div class="ldg">Selecione um ministério para começar.</div>
+    </div>
+  </div>
 
 <!-- CELL POPOVER -->
 <div class="cpop" id="cpop">
@@ -683,6 +715,57 @@ body.adm .gate, body.lead .gate, body.pas .gate{display:none}
   </div>
 </div>
 
+<!-- MODAL: Editar/Nova Ata -->
+<div class="ov" id="ovAta">
+  <div class="mod lg">
+    <h3 id="ataTitle">Nova Ata</h3>
+    <p class="sub">Registre o conteúdo da reunião do ministério (privado).</p>
+    <div class="fld row">
+      <div><label>Título</label><input id="ataTitulo" placeholder="Ex: Ensaio geral, Reunião de planejamento..."></div>
+      <div><label>Data</label><input type="date" id="ataData"></div>
+    </div>
+    <div class="fld">
+      <label>Conteúdo</label>
+      <textarea id="ataTexto" rows="14" placeholder="Anote os pontos discutidos, decisões, próximos passos..."></textarea>
+    </div>
+    <div class="mact">
+      <button class="btn btn-d left" id="ataDelBtn" onclick="deleteAta()">Excluir</button>
+      <button class="btn btn-s" onclick="closeOv('ovAta')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveAta()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nova Lista de Presença -->
+<div class="ov" id="ovNovaLista">
+  <div class="mod">
+    <h3>Nova Lista de Presença</h3>
+    <p class="sub">Crie uma lista paralela para um ensaio, capacitação, reunião interna, etc.</p>
+    <div class="fld row">
+      <div><label>Título</label><input id="ltTitulo" placeholder="Ex: Ensaio sábado"></div>
+      <div><label>Data</label><input type="date" id="ltData"></div>
+    </div>
+    <div class="mact">
+      <button class="btn btn-s" onclick="closeOv('ovNovaLista')">Cancelar</button>
+      <button class="btn btn-g" onclick="saveNovaLista()">Criar e marcar presença</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Detalhe/Roll-call de Lista -->
+<div class="ov" id="ovListaDetail">
+  <div class="mod lg">
+    <h3 id="ldTitle">—</h3>
+    <p class="sub" id="ldMeta"></p>
+    <div id="ldContent" style="max-height:480px;overflow-y:auto"></div>
+    <div class="mact">
+      <button class="btn btn-d left" onclick="deleteLista()">Excluir lista</button>
+      <button class="btn btn-s" onclick="closeOv('ovListaDetail')">Fechar</button>
+      <button class="btn btn-p" onclick="renameLista()">Renomear</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Motivo da ausência -->
 <div class="ov" id="ovMotivo">
   <div class="mod" style="max-width:420px;position:relative">
@@ -742,7 +825,10 @@ const S = {
   admin: false,
   leaderMin: null,
   pastor: false,
-  presHistory: []
+  presHistory: [],
+  private: {},
+  editAta: null,
+  editLista: null
 };
 
 // ============================== UTILS ==============================
@@ -970,6 +1056,7 @@ window.ST=function(tab,btn){
     pRefresh();
   }
   if(tab==='dashboard') renderDash();
+  if(tab==='anotacoes') renderAnotacoes();
 };
 
 function showOv(id){ document.getElementById(id).classList.add('on'); }
@@ -1275,6 +1362,10 @@ function setupListeners(m){
     S.presencas=snap.val()||{};
     if(document.getElementById('tab-dashboard').classList.contains('on')) renderDash();
     if(document.getElementById('tab-presenca').classList.contains('on')) pRefresh();
+  });
+  S.listeners.private=onValue(ref(db,'hermom/private'),(snap)=>{
+    S.private=snap.val()||{};
+    if(document.getElementById('tab-anotacoes').classList.contains('on')) renderAnotacoes();
   });
 }
 
@@ -2713,6 +2804,296 @@ window.diagExcluded=function(meetKey){
     console.log(`  ${i+1}. ${e.nome} — ${e.detalhes.map(d=>d.min+':'+d.status).join(' | ')}`);
   });
   return excluded;
+};
+
+// ============================== ANOTAÇÕES (Atas + Listas) ==============================
+function getAnotMin(){
+  if(S.leaderMin) return S.leaderMin;
+  if(S.admin) return document.getElementById('anotMin')?.value || '';
+  return '';
+}
+function populateAnotMinDropdown(){
+  const sel=document.getElementById('anotMin');
+  if(!sel || S.leaderMin) return;
+  const cur=sel.value;
+  while(sel.options.length>1) sel.remove(1);
+  Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'})).forEach(([k,v])=>{
+    const o=document.createElement('option'); o.value=k; o.textContent=v.nome; sel.appendChild(o);
+  });
+  if(cur) sel.value=cur;
+}
+function fmtDateBR(d){
+  if(!d) return '—';
+  const parts=d.split('-');
+  if(parts.length!==3) return d;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+window.renderAnotacoes=function(){
+  // Garante o dropdown populado para admin
+  if(S.admin && !S.leaderMin) populateAnotMinDropdown();
+  // Trava dropdown para líder
+  if(S.leaderMin){
+    const sel=document.getElementById('anotMin');
+    if(sel){
+      while(sel.options.length>0) sel.remove(0);
+      const o=document.createElement('option');
+      o.value=S.leaderMin; o.textContent=S.mins[S.leaderMin]?.nome||S.leaderMin;
+      sel.appendChild(o); sel.value=S.leaderMin; sel.disabled=true;
+    }
+  }
+  const minKey=getAnotMin();
+  const meta=document.getElementById('anot-meta');
+  if(!minKey){
+    if(meta) meta.textContent='';
+    document.getElementById('anotContent').innerHTML='<div class="empty-state">Selecione um ministério para começar.</div>';
+    return;
+  }
+  const minData=(S.private||{})[minKey]||{};
+  const atas=minData.atas||{};
+  const listas=minData.listas||{};
+  if(meta) meta.textContent=S.mins[minKey]?.nome||'';
+  // Atas
+  const atasArr=Object.entries(atas).sort((a,b)=>(b[1].data||'').localeCompare(a[1].data||''));
+  const atasHtml=atasArr.length?atasArr.map(([id,a])=>`
+    <div class="ata-card" onclick="openAta('${esc(minKey)}','${esc(id)}')">
+      <div class="ata-head">
+        <div class="ata-titulo">${esc(a.titulo||'Sem título')}</div>
+        <div class="ata-date">${fmtDateBR(a.data)}</div>
+      </div>
+      <div class="ata-preview">${esc(a.texto||'(sem conteúdo)')}</div>
+    </div>`).join(''):'<div class="empty-state">Nenhuma ata registrada. Clique em "+ Nova Ata" para começar.</div>';
+  // Listas
+  const listasArr=Object.entries(listas).sort((a,b)=>(b[1].data||'').localeCompare(a[1].data||''));
+  const listasHtml=listasArr.length?listasArr.map(([id,l])=>{
+    const presencas=l.presencas||{};
+    const stats=Object.values(presencas).reduce((acc,p)=>{
+      const {status}=decodeStatus(p);
+      if(status==='presente') acc.p++;
+      if(status&&status!=='nao_membro') acc.e++;
+      return acc;
+    },{p:0,e:0});
+    return `<div class="lista-card" onclick="openLista('${esc(minKey)}','${esc(id)}')">
+      <div class="lista-head">
+        <div class="lista-titulo">${esc(l.titulo||'Sem título')}</div>
+        <div class="lista-date">${fmtDateBR(l.data)}</div>
+      </div>
+      <div class="lista-stats">
+        <span>👥 ${stats.p} presentes${stats.e?` de ${stats.e} marcados`:''}</span>
+      </div>
+    </div>`;
+  }).join(''):'<div class="empty-state">Nenhuma lista de presença criada. Clique em "+ Nova Lista" para começar.</div>';
+
+  document.getElementById('anotContent').innerHTML=`
+    <div class="anot-section">
+      <div class="anot-section-head">
+        <h3>Atas de Reuniões <small>${atasArr.length}</small></h3>
+        <button class="btn btn-g btn-sm" onclick="openNewAta()">+ Nova Ata</button>
+      </div>
+      ${atasHtml}
+    </div>
+    <div class="anot-section">
+      <div class="anot-section-head">
+        <h3>Listas de Presença Paralelas <small>${listasArr.length}</small></h3>
+        <button class="btn btn-g btn-sm" onclick="openNewLista()">+ Nova Lista</button>
+      </div>
+      ${listasHtml}
+    </div>
+  `;
+};
+
+// ATAS
+window.openNewAta=function(){
+  const minKey=getAnotMin();
+  if(!minKey){ toast('Selecione um ministério','er'); return; }
+  S.editAta={minKey,id:null};
+  document.getElementById('ataTitle').textContent='Nova Ata';
+  document.getElementById('ataTitulo').value='';
+  document.getElementById('ataData').value=new Date().toISOString().slice(0,10);
+  document.getElementById('ataTexto').value='';
+  document.getElementById('ataDelBtn').style.display='none';
+  showOv('ovAta');
+};
+window.openAta=function(minKey,id){
+  const ata=(((S.private||{})[minKey]||{}).atas||{})[id];
+  if(!ata) return;
+  S.editAta={minKey,id};
+  document.getElementById('ataTitle').textContent='Editar Ata';
+  document.getElementById('ataTitulo').value=ata.titulo||'';
+  document.getElementById('ataData').value=ata.data||'';
+  document.getElementById('ataTexto').value=ata.texto||'';
+  document.getElementById('ataDelBtn').style.display='inline-block';
+  showOv('ovAta');
+};
+window.saveAta=async function(){
+  if(!S.editAta||!S.db) return;
+  const {minKey,id}=S.editAta;
+  const titulo=document.getElementById('ataTitulo').value.trim();
+  const data=document.getElementById('ataData').value;
+  const texto=document.getElementById('ataTexto').value;
+  if(!titulo){ toast('Informe o título','er'); return; }
+  try{
+    const {ref,set}=fbMods;
+    const ataId=id||('a_'+Date.now());
+    const oldCriadoEm=id?(((S.private[minKey]||{}).atas||{})[id]?.criadoEm):null;
+    await set(ref(S.db,`hermom/private/${minKey}/atas/${ataId}`),{
+      titulo,data,texto,
+      criadoEm:oldCriadoEm||Date.now(),
+      atualizadoEm:Date.now()
+    });
+    toast('Ata salva','ok');
+    closeOv('ovAta');
+  }catch(e){ toast('Erro: '+e.message,'er'); }
+};
+window.deleteAta=function(){
+  if(!S.editAta||!S.db) return;
+  const {minKey,id}=S.editAta;
+  if(!id) return;
+  confirmDialog('Excluir ata','Excluir esta ata? Não pode ser desfeito.',async()=>{
+    try{
+      const {ref,remove}=fbMods;
+      await remove(ref(S.db,`hermom/private/${minKey}/atas/${id}`));
+      toast('Ata excluída','ok');
+      closeOv('ovAta');
+    }catch(e){ toast('Erro: '+e.message,'er'); }
+  });
+};
+
+// LISTAS DE PRESENÇA PARALELAS
+window.openNewLista=function(){
+  const minKey=getAnotMin();
+  if(!minKey){ toast('Selecione um ministério','er'); return; }
+  S._newListaMin=minKey;
+  document.getElementById('ltTitulo').value='';
+  document.getElementById('ltData').value=new Date().toISOString().slice(0,10);
+  showOv('ovNovaLista');
+};
+window.saveNovaLista=async function(){
+  const minKey=S._newListaMin;
+  if(!minKey||!S.db) return;
+  const titulo=document.getElementById('ltTitulo').value.trim();
+  const data=document.getElementById('ltData').value;
+  if(!titulo){ toast('Informe o título','er'); return; }
+  if(!data){ toast('Informe a data','er'); return; }
+  try{
+    const {ref,set}=fbMods;
+    const id='l_'+Date.now();
+    await set(ref(S.db,`hermom/private/${minKey}/listas/${id}`),{
+      titulo,data,criadoEm:Date.now()
+    });
+    closeOv('ovNovaLista');
+    toast('Lista criada','ok');
+    // Abre o roll-call
+    setTimeout(()=>openLista(minKey,id),200);
+  }catch(e){ toast('Erro: '+e.message,'er'); }
+};
+window.openLista=function(minKey,id){
+  const lista=(((S.private||{})[minKey]||{}).listas||{})[id];
+  if(!lista) return;
+  S.editLista={minKey,id};
+  document.getElementById('ldTitle').textContent=lista.titulo||'Lista';
+  document.getElementById('ldMeta').textContent=`${S.mins[minKey]?.nome||minKey} · ${fmtDateBR(lista.data)}`;
+  renderListaRollCall();
+  showOv('ovListaDetail');
+};
+function renderListaRollCall(){
+  if(!S.editLista) return;
+  const {minKey,id}=S.editLista;
+  const lista=(((S.private||{})[minKey]||{}).listas||{})[id];
+  if(!lista) return;
+  const membros=S.mins[minKey]?.membros||{};
+  const presencas=lista.presencas||{};
+  const sortedKeys=sortMemberEntries(Object.entries(membros)).map(([k])=>k);
+  const canEdit=S.admin || (S.leaderMin===minKey);
+  let p=0,e=0;
+  sortedKeys.forEach(pk=>{
+    const {status}=decodeStatus(presencas[pk]);
+    if(status&&status!=='nao_membro'){e++; if(status==='presente') p++;}
+  });
+  const taxa=e>0?Math.round((p/e)*100):null;
+  let rows='';
+  sortedKeys.forEach(pk=>{
+    const m=membros[pk]||{nome:pk.replace(/_/g,' '),role:'membro'};
+    const v=presencas[pk];
+    const {status,just}=decodeStatus(v);
+    const rl=m.role==='lider'?'Líder':m.role==='colider'?'Co-líder':'Membro';
+    const roleColor=m.role==='lider'?'var(--gold)':m.role==='colider'?'var(--navy2)':'var(--gray)';
+    if(canEdit){
+      rows+=`<div class="rc-row">
+        <div></div>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${avatarHtml(m.nome,32)}
+          <div>
+            <div class="rc-nm">${esc(m.nome)}</div>
+            <div class="rc-rt" style="color:${roleColor}">${rl}</div>
+          </div>
+        </div>
+        <div class="rc-btns">
+          <button class="rc-btn p${status==='presente'?' on':''}" onclick="setListaStatus('${esc(pk)}','p')">Presente</button>
+          <button class="rc-btn a${status==='ausente'?' on':''}" onclick="setListaStatus('${esc(pk)}','a')">Ausente</button>
+        </div>
+        <input type="text" class="rc-just" placeholder="Motivo (justificativa)..." value="${esc(just||'')}" onchange="setListaJust('${esc(pk)}',this.value)">
+      </div>`;
+    } else {
+      const cellTxt=status==='presente'?'<span style="color:var(--green)">✓ Presente</span>':status==='ausente'?'<span style="color:var(--red)">✗ Ausente</span>':status==='justificado'?`<span style="color:var(--amber)">${esc(just||'Justificado')}</span>`:'<span style="color:var(--gray)">—</span>';
+      rows+=`<div class="rc-row" style="grid-template-columns:1fr auto"><div style="display:flex;align-items:center;gap:10px">${avatarHtml(m.nome,32)}<div><div class="rc-nm">${esc(m.nome)}</div><div class="rc-rt" style="color:${roleColor}">${rl}</div></div></div><div>${cellTxt}</div></div>`;
+    }
+  });
+  document.getElementById('ldContent').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);margin-bottom:10px">
+      <div style="font-size:.78rem;color:var(--gray)">${p} presentes de ${e} marcados</div>
+      ${pctHtml(taxa)}
+    </div>
+    ${rows||'<div class="empty-state">Nenhum membro neste ministério.</div>'}
+  `;
+}
+window.setListaStatus=async function(pk,code){
+  if(!S.editLista||!S.db) return;
+  const {minKey,id}=S.editLista;
+  const status=code==='p'?'presente':code==='a'?'ausente':'nao_membro';
+  try{
+    const {ref,set}=fbMods;
+    await set(ref(S.db,`hermom/private/${minKey}/listas/${id}/presencas/${pk}`),{status,justificativa:''});
+  }catch(e){ toast('Erro: '+e.message,'er'); }
+};
+window.setListaJust=async function(pk,text){
+  if(!S.editLista||!S.db) return;
+  const {minKey,id}=S.editLista;
+  const t=(text||'').trim();
+  try{
+    const {ref,set}=fbMods;
+    if(t){
+      await set(ref(S.db,`hermom/private/${minKey}/listas/${id}/presencas/${pk}`),{status:'justificado',justificativa:t});
+    } else {
+      await set(ref(S.db,`hermom/private/${minKey}/listas/${id}/presencas/${pk}`),{status:'ausente',justificativa:''});
+    }
+  }catch(e){ toast('Erro: '+e.message,'er'); }
+};
+window.deleteLista=function(){
+  if(!S.editLista||!S.db) return;
+  const {minKey,id}=S.editLista;
+  confirmDialog('Excluir lista','Excluir esta lista de presença? Os registros serão apagados permanentemente.',async()=>{
+    try{
+      const {ref,remove}=fbMods;
+      await remove(ref(S.db,`hermom/private/${minKey}/listas/${id}`));
+      toast('Lista excluída','ok');
+      closeOv('ovListaDetail');
+    }catch(e){ toast('Erro: '+e.message,'er'); }
+  });
+};
+window.renameLista=async function(){
+  if(!S.editLista||!S.db) return;
+  const {minKey,id}=S.editLista;
+  const cur=(((S.private||{})[minKey]||{}).listas||{})[id]||{};
+  const novoTitulo=prompt('Novo título da lista:',cur.titulo||'');
+  if(novoTitulo===null) return;
+  if(!novoTitulo.trim()) return;
+  try{
+    const {ref,set}=fbMods;
+    await set(ref(S.db,`hermom/private/${minKey}/listas/${id}/titulo`),novoTitulo.trim());
+    document.getElementById('ldTitle').textContent=novoTitulo.trim();
+    toast('Título atualizado','ok');
+  }catch(e){ toast('Erro: '+e.message,'er'); }
 };
 
 // ============================== INIT ==============================
