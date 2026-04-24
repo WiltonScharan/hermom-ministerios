@@ -268,6 +268,15 @@ body.lead #leadBtn{display:none!important}
 body.lead #admBtn{display:none!important}
 body.adm #leadBtn{display:none!important}
 .lead-badge{background:rgba(74,222,128,.2);color:#a7f3d0;padding:4px 10px;border-radius:12px;font-size:.72rem;font-weight:600}
+.gate{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;animation:gateIn .25s ease}
+.gate-box{background:var(--white);border-radius:var(--r);padding:44px 40px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center}
+.gate-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--navy);font-weight:700;line-height:1}
+.gate-sub{font-size:.78rem;color:var(--gold);font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
+.gate-text{color:var(--gray);margin:26px 0 22px;font-size:.92rem}
+.gate-btn{width:100%;margin-bottom:10px;padding:13px;font-size:.95rem}
+.gate-foot{font-size:.72rem;color:var(--gray);margin-top:18px}
+@keyframes gateIn{from{opacity:0}to{opacity:1}}
+body.adm .gate, body.lead .gate{display:none}
 @media(max-width:620px){
   .hdr{padding:0 14px;gap:10px;height:auto;padding-top:8px;padding-bottom:8px}
   .main{padding:14px}
@@ -279,6 +288,18 @@ body.adm #leadBtn{display:none!important}
 </style>
 </head>
 <body>
+<!-- LOGIN GATE: bloqueia o app até que haja sessão (admin ou líder) -->
+<div id="loginGate" class="gate">
+  <div class="gate-box">
+    <div class="gate-title">Igreja Hermom</div>
+    <div class="gate-sub">Controle de Ministérios</div>
+    <p class="gate-text">Faça login para acessar o sistema.</p>
+    <button class="btn btn-p gate-btn" onclick="adminLogin()">🔒 Entrar como Administrador</button>
+    <button class="btn btn-gold gate-btn" onclick="leaderLogin()">👥 Entrar como Líder</button>
+    <p class="gate-foot">Use as credenciais definidas pelo administrador.</p>
+  </div>
+</div>
+
 <div class="hdr">
   <div class="logo">Igreja Hermom <small>Controle de Ministérios</small></div>
   <nav class="nav">
@@ -290,11 +311,12 @@ body.adm #leadBtn{display:none!important}
   <div class="hdr-r">
     <div class="rt-dot off adm-only" id="rtDot" title="Status Firebase"></div>
     <span class="rt-lbl adm-only" id="rtLbl">Conectando...</span>
-    <button class="hbtn adm-only" onclick="adminLogout()">Sair (admin)</button>
-    <button class="hbtn" id="admBtn" onclick="adminLogin()" title="Entrar como administrador">🔒 Admin</button>
-    <button class="hbtn" id="leadBtn" onclick="leaderLogin()" title="Entrar como líder de ministério">👥 Líder</button>
-    <button class="hbtn lead-only" id="leadLogoutBtn" onclick="leaderLogout()">Sair (Líder)</button>
     <span class="lead-only lead-badge" id="leadBadge"></span>
+    <button class="hbtn adm-only" onclick="adminLogout()">Sair (admin)</button>
+    <button class="hbtn lead-only" id="leadLogoutBtn" onclick="leaderLogout()">Sair (Líder)</button>
+    <!-- Botoes ocultos usados pela gate -->
+    <button class="hbtn" id="admBtn" onclick="adminLogin()" style="display:none">Admin</button>
+    <button class="hbtn" id="leadBtn" onclick="leaderLogin()" style="display:none">Líder</button>
   </div>
 </div>
 
@@ -1293,14 +1315,22 @@ function renderDash(){
       ${trendData.map((v,i)=>{const cx=pl.l+i*xS,cy=pl.t+ih-(v/100)*ih;const lbl=labels[i]?labels[i].substring(3):'';return `<circle cx="${cx}" cy="${cy}" r="4" fill="white" stroke="#2d7d5e" stroke-width="2"/><text x="${cx}" y="${cy-10}" text-anchor="middle" font-size="10" fill="#1a2744" font-weight="600">${v}%</text><text x="${cx}" y="${H-6}" text-anchor="middle" font-size="9" fill="#8a95b0">${lbl}</text>`}).join('')}
     </svg>`;
   }
-  // Aniversariantes do mês
+  // Aniversariantes do mês (filtrado pelo ministério do líder, se aplicável)
   const now=new Date();
   const curMonth=now.getMonth()+1;
   const monthNames=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   document.getElementById('d-anvMonth').textContent='— '+monthNames[curMonth-1];
-  const anv=Object.values(S.members).filter(m=>{
+  let anvPool=Object.entries(S.members);
+  if(S.leaderMin){
+    const leaderMinName=S.mins[S.leaderMin]?.nome;
+    anvPool=anvPool.filter(([mk])=>{
+      const info=ministeriosDoCooperador(mk);
+      return info.participa.includes(leaderMinName)||info.pastor.includes(leaderMinName);
+    });
+  }
+  const anv=anvPool.map(([,m])=>m).filter(m=>{
     if(!m.aniversario) return false;
-    const parts=m.aniversario.split('-'); // YYYY-MM-DD
+    const parts=m.aniversario.split('-');
     return parts.length>=2 && parseInt(parts[1])===curMonth;
   }).sort((a,b)=>parseInt(a.aniversario.split('-')[2])-parseInt(b.aniversario.split('-')[2]));
   const anvEl=document.getElementById('d-anv');
