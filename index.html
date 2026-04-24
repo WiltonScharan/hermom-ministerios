@@ -336,15 +336,7 @@ body.adm .gate, body.lead .gate, body.pas .gate{display:none}
       </div>
       <button class="btn btn-p gate-btn" onclick="submitLeaderLogin()">Entrar</button>
     </div>
-    <button class="btn btn-pas gate-btn" onclick="toggleGateForm('pas')">⛪ Entrar como Pastor Presidente</button>
-    <div class="gate-form" id="gatePastorForm">
-      <div class="gate-pass-wrap">
-        <input type="password" id="gatePastorPass" placeholder="Senha do Pastor Presidente" onkeydown="if(event.key==='Enter')submitPastorLogin()">
-        <button type="button" class="gate-eye" onclick="togglePass('gatePastorPass',this)" title="Mostrar/ocultar senha" aria-label="Mostrar senha"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-      </div>
-      <button class="btn btn-p gate-btn" onclick="submitPastorLogin()">Entrar</button>
-    </div>
-    <p class="gate-foot">Use as credenciais definidas pelo administrador.</p>
+    <p class="gate-foot">Use as credenciais definidas pelo administrador.<br>Pastor Presidente entra pelo botão de Administrador com a senha definida.</p>
   </div>
 </div>
 
@@ -989,8 +981,7 @@ window.adminLogin=function(){ toggleGateForm('admin'); };
 window.toggleGateForm=function(which){
   const admForm=document.getElementById('gateAdminForm');
   const leadForm=document.getElementById('gateLeaderForm');
-  const pasForm=document.getElementById('gatePastorForm');
-  const closeAll=()=>{ admForm.classList.remove('on'); leadForm.classList.remove('on'); pasForm.classList.remove('on'); };
+  const closeAll=()=>{ admForm.classList.remove('on'); leadForm.classList.remove('on'); };
   if(which==='admin'){
     const opening=!admForm.classList.contains('on');
     closeAll();
@@ -1015,14 +1006,6 @@ window.toggleGateForm=function(which){
       closeAll();
       leadForm.classList.add('on');
     } else { closeAll(); }
-  } else if(which==='pas'){
-    const opening=!pasForm.classList.contains('on');
-    closeAll();
-    if(opening){
-      pasForm.classList.add('on');
-      document.getElementById('gatePastorPass').value='';
-      setTimeout(()=>document.getElementById('gatePastorPass').focus(),80);
-    }
   }
 };
 const EYE_OPEN_SVG='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -1046,8 +1029,10 @@ function shakeForm(id){
   el.classList.add('shake');
   setTimeout(()=>el.classList.remove('shake'),500);
 }
-window.submitAdminLogin=function(){
+window.submitAdminLogin=async function(){
   const pass=document.getElementById('gateAdminPass').value;
+  if(!pass){ shakeForm('gateAdminForm'); return; }
+  // 1) Tenta senha de admin
   if(pass===ADMIN_PASS){
     localStorage.setItem('hermom_admin','1');
     S.admin=true;
@@ -1060,12 +1045,33 @@ window.submitAdminLogin=function(){
     if(active==='tab-presenca') pRefresh();
     const delBtn=document.getElementById('pDelMeetBtn');
     if(delBtn) delBtn.style.display=(S.pMeet && S.pMeet!=='__all__')?'inline-block':'none';
-  } else {
-    shakeForm('gateAdminForm');
-    document.getElementById('gateAdminPass').value='';
-    document.getElementById('gateAdminPass').focus();
-    toast('Senha incorreta','er');
+    return;
   }
+  // 2) Tenta senha de pastor presidente (Firebase)
+  if(S.db){
+    try{
+      const {ref,get}=fbMods;
+      const snap=await get(ref(S.db,'hermom/config/pastor_pass'));
+      const pastorPass=snap.exists()?snap.val():'';
+      if(pastorPass && pass===pastorPass){
+        S.pastor=true;
+        localStorage.setItem('hermom_pastor','1');
+        document.body.classList.add('pas');
+        toast('Entrou como Pastor Presidente','ok');
+        const active=document.querySelector('.tab.on')?.id||'';
+        if(active==='tab-dashboard') renderDash();
+        if(active==='tab-ministerios') renderMins();
+        if(active==='tab-membros') renderMembros();
+        if(active==='tab-presenca') pRefresh();
+        return;
+      }
+    }catch(e){ /* segue pro erro */ }
+  }
+  // Nenhuma senha bateu
+  shakeForm('gateAdminForm');
+  document.getElementById('gateAdminPass').value='';
+  document.getElementById('gateAdminPass').focus();
+  toast('Senha incorreta','er');
 };
 window.submitLeaderLogin=function(){
   const mk=document.getElementById('gateLeaderMin').value;
@@ -1098,37 +1104,6 @@ window.adminLogout=function(){
 };
 
 window.leaderLogin=function(){ toggleGateForm('lead'); };
-
-window.submitPastorLogin=async function(){
-  const pass=document.getElementById('gatePastorPass').value;
-  if(!pass){ shakeForm('gatePastorForm'); return; }
-  if(!S.db){ toast('Aguarde a conexão...','er'); return; }
-  try{
-    const {ref,get}=fbMods;
-    const snap=await get(ref(S.db,'hermom/config/pastor_pass'));
-    const correct=snap.exists()?snap.val():'';
-    if(!correct){
-      toast('Acesso de Pastor Presidente não habilitado. Peça ao admin.','er');
-      return;
-    }
-    if(pass!==correct){
-      shakeForm('gatePastorForm');
-      document.getElementById('gatePastorPass').value='';
-      document.getElementById('gatePastorPass').focus();
-      toast('Senha incorreta','er');
-      return;
-    }
-    S.pastor=true;
-    localStorage.setItem('hermom_pastor','1');
-    document.body.classList.add('pas');
-    toast('Entrou como Pastor Presidente','ok');
-    const active=document.querySelector('.tab.on')?.id||'';
-    if(active==='tab-dashboard') renderDash();
-    if(active==='tab-ministerios') renderMins();
-    if(active==='tab-membros') renderMembros();
-    if(active==='tab-presenca') pRefresh();
-  }catch(e){ toast('Erro: '+e.message,'er'); }
-};
 
 window.pastorLogout=function(){
   localStorage.removeItem('hermom_pastor');
