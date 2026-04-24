@@ -274,6 +274,11 @@ body.lead #leadBtn{display:none!important}
 body.lead #admBtn{display:none!important}
 body.adm #leadBtn{display:none!important}
 .lead-badge{background:rgba(74,222,128,.2);color:#a7f3d0;padding:4px 10px;border-radius:12px;font-size:.72rem;font-weight:600}
+body:not(.pas) .pas-only{display:none!important}
+body.pas .adm-only{display:none!important}
+.pas-badge{background:rgba(167,139,250,.25);color:#c4b5fd;padding:4px 10px;border-radius:12px;font-size:.7rem;font-weight:700;letter-spacing:.04em}
+.btn-pas{background:#5b21b6;color:#fff}
+.btn-pas:hover{background:#4c1d95}
 .gate{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;animation:gateIn .25s ease}
 .gate-box{background:var(--white);border-radius:var(--r);padding:44px 40px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center}
 .gate-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--navy);font-weight:700;line-height:1}
@@ -294,7 +299,7 @@ body.adm #leadBtn{display:none!important}
 @keyframes shake{0%,100%{transform:translateX(0)}15%,45%,75%{transform:translateX(-8px)}30%,60%,90%{transform:translateX(8px)}}
 @keyframes gateFormIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes gateIn{from{opacity:0}to{opacity:1}}
-body.adm .gate, body.lead .gate{display:none}
+body.adm .gate, body.lead .gate, body.pas .gate{display:none}
 @media(max-width:620px){
   .hdr{padding:0 14px;gap:10px;height:auto;padding-top:8px;padding-bottom:8px}
   .main{padding:14px}
@@ -331,6 +336,14 @@ body.adm .gate, body.lead .gate{display:none}
       </div>
       <button class="btn btn-p gate-btn" onclick="submitLeaderLogin()">Entrar</button>
     </div>
+    <button class="btn btn-pas gate-btn" onclick="toggleGateForm('pas')">⛪ Entrar como Pastor Presidente</button>
+    <div class="gate-form" id="gatePastorForm">
+      <div class="gate-pass-wrap">
+        <input type="password" id="gatePastorPass" placeholder="Senha do Pastor Presidente" onkeydown="if(event.key==='Enter')submitPastorLogin()">
+        <button type="button" class="gate-eye" onclick="togglePass('gatePastorPass',this)" title="Mostrar/ocultar senha" aria-label="Mostrar senha"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+      <button class="btn btn-p gate-btn" onclick="submitPastorLogin()">Entrar</button>
+    </div>
     <p class="gate-foot">Use as credenciais definidas pelo administrador.</p>
   </div>
 </div>
@@ -347,8 +360,11 @@ body.adm .gate, body.lead .gate{display:none}
     <div class="rt-dot off adm-only" id="rtDot" title="Status Firebase"></div>
     <span class="rt-lbl adm-only" id="rtLbl">Conectando...</span>
     <span class="lead-only lead-badge" id="leadBadge"></span>
+    <span class="pas-only pas-badge" id="pasBadge">PASTOR PRESIDENTE</span>
+    <button class="hbtn adm-only" onclick="openAdminSettings()" title="Configurações">⚙</button>
     <button class="hbtn adm-only" onclick="adminLogout()">Sair (admin)</button>
     <button class="hbtn lead-only" id="leadLogoutBtn" onclick="leaderLogout()">Sair (Líder)</button>
+    <button class="hbtn pas-only" id="pasLogoutBtn" onclick="pastorLogout()">Sair (Pastor)</button>
     <!-- Botoes ocultos usados pela gate -->
     <button class="hbtn" id="admBtn" onclick="adminLogin()" style="display:none">Admin</button>
     <button class="hbtn" id="leadBtn" onclick="leaderLogin()" style="display:none">Líder</button>
@@ -425,7 +441,7 @@ body.adm .gate, body.lead .gate{display:none}
       <button class="btn btn-s btn-sm" id="pBackBtn" onclick="pBack()" style="display:none">← Voltar</button>
       <select class="fsel ms" id="pMinSel">
         <option value="">— Selecione o ministério —</option>
-        <option value="__all__">Todos os ministérios (visão macro)</option>
+        <option value="__all__">Todos os ministérios</option>
       </select>
       <select class="fsel" id="pMeetSel">
         <option value="__all__">Todas as reuniões</option>
@@ -458,6 +474,26 @@ body.adm .gate, body.lead .gate{display:none}
   <div class="cp-ja" id="cpJust" style="display:none">
     <input id="cpJustTxt" placeholder="Motivo da ausência..." onkeydown="if(event.key==='Enter')confirmJust()">
     <button onclick="confirmJust()">OK</button>
+  </div>
+</div>
+
+<!-- MODAL: Configurações do Admin -->
+<div class="ov" id="ovAdmCfg">
+  <div class="mod">
+    <h3>Configurações</h3>
+    <p class="sub">Configurações gerais do sistema (apenas administrador).</p>
+    <div class="fld">
+      <label>Senha do Pastor Presidente</label>
+      <div class="gate-pass-wrap">
+        <input type="password" id="cfgPastorPass" placeholder="Em branco = acesso desabilitado">
+        <button type="button" class="gate-eye" onclick="togglePass('cfgPastorPass',this)" aria-label="Mostrar senha"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+      <div class="hint">O Pastor Presidente entra pelo botão ⛪ na tela de login e tem visão completa de todos os ministérios, sem permissão de edição.</div>
+    </div>
+    <div class="mact">
+      <button class="btn btn-s" onclick="closeOv('ovAdmCfg')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveAdmCfg()">Salvar</button>
+    </div>
   </div>
 </div>
 
@@ -713,6 +749,7 @@ const S = {
   seeded: false,
   admin: false,
   leaderMin: null,
+  pastor: false,
   presHistory: []
 };
 
@@ -952,19 +989,19 @@ window.adminLogin=function(){ toggleGateForm('admin'); };
 window.toggleGateForm=function(which){
   const admForm=document.getElementById('gateAdminForm');
   const leadForm=document.getElementById('gateLeaderForm');
+  const pasForm=document.getElementById('gatePastorForm');
+  const closeAll=()=>{ admForm.classList.remove('on'); leadForm.classList.remove('on'); pasForm.classList.remove('on'); };
   if(which==='admin'){
-    leadForm.classList.remove('on');
     const opening=!admForm.classList.contains('on');
-    admForm.classList.toggle('on');
+    closeAll();
     if(opening){
+      admForm.classList.add('on');
       document.getElementById('gateAdminPass').value='';
       setTimeout(()=>document.getElementById('gateAdminPass').focus(),80);
     }
   } else if(which==='lead'){
-    admForm.classList.remove('on');
     const opening=!leadForm.classList.contains('on');
     if(opening){
-      // Popular dropdown
       const sel=document.getElementById('gateLeaderMin');
       sel.innerHTML='<option value="">Selecione o ministério...</option>';
       const withSenha=Object.entries(S.mins)
@@ -975,8 +1012,17 @@ window.toggleGateForm=function(which){
         const o=document.createElement('option'); o.value=k; o.textContent=v.nome; sel.appendChild(o);
       });
       document.getElementById('gateLeaderPass').value='';
+      closeAll();
+      leadForm.classList.add('on');
+    } else { closeAll(); }
+  } else if(which==='pas'){
+    const opening=!pasForm.classList.contains('on');
+    closeAll();
+    if(opening){
+      pasForm.classList.add('on');
+      document.getElementById('gatePastorPass').value='';
+      setTimeout(()=>document.getElementById('gatePastorPass').focus(),80);
     }
-    leadForm.classList.toggle('on');
   }
 };
 const EYE_OPEN_SVG='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -1052,6 +1098,64 @@ window.adminLogout=function(){
 };
 
 window.leaderLogin=function(){ toggleGateForm('lead'); };
+
+window.submitPastorLogin=async function(){
+  const pass=document.getElementById('gatePastorPass').value;
+  if(!pass){ shakeForm('gatePastorForm'); return; }
+  if(!S.db){ toast('Aguarde a conexão...','er'); return; }
+  try{
+    const {ref,get}=fbMods;
+    const snap=await get(ref(S.db,'hermom/config/pastor_pass'));
+    const correct=snap.exists()?snap.val():'';
+    if(!correct){
+      toast('Acesso de Pastor Presidente não habilitado. Peça ao admin.','er');
+      return;
+    }
+    if(pass!==correct){
+      shakeForm('gatePastorForm');
+      document.getElementById('gatePastorPass').value='';
+      document.getElementById('gatePastorPass').focus();
+      toast('Senha incorreta','er');
+      return;
+    }
+    S.pastor=true;
+    localStorage.setItem('hermom_pastor','1');
+    document.body.classList.add('pas');
+    toast('Entrou como Pastor Presidente','ok');
+    const active=document.querySelector('.tab.on')?.id||'';
+    if(active==='tab-dashboard') renderDash();
+    if(active==='tab-ministerios') renderMins();
+    if(active==='tab-membros') renderMembros();
+    if(active==='tab-presenca') pRefresh();
+  }catch(e){ toast('Erro: '+e.message,'er'); }
+};
+
+window.pastorLogout=function(){
+  localStorage.removeItem('hermom_pastor');
+  location.reload();
+};
+
+window.openAdminSettings=async function(){
+  if(!S.admin) return;
+  if(!S.db){ toast('Aguarde a conexão...','er'); return; }
+  try{
+    const {ref,get}=fbMods;
+    const snap=await get(ref(S.db,'hermom/config/pastor_pass'));
+    document.getElementById('cfgPastorPass').value=snap.exists()?snap.val():'';
+    showOv('ovAdmCfg');
+  }catch(e){ toast('Erro: '+e.message,'er'); }
+};
+
+window.saveAdmCfg=async function(){
+  if(!S.admin||!S.db) return;
+  const pass=document.getElementById('cfgPastorPass').value.trim();
+  try{
+    const {ref,set}=fbMods;
+    await set(ref(S.db,'hermom/config/pastor_pass'),pass);
+    toast('Configuração salva','ok');
+    closeOv('ovAdmCfg');
+  }catch(e){ toast('Erro: '+e.message,'er'); }
+};
 
 window.leaderLogout=function(){
   localStorage.removeItem('hermom_leader_min');
@@ -2640,6 +2744,10 @@ window.diagExcluded=function(meetKey){
 if(localStorage.getItem('hermom_admin')==='1'){
   S.admin=true;
   document.body.classList.add('adm');
+}
+if(localStorage.getItem('hermom_pastor')==='1' && !S.admin){
+  S.pastor=true;
+  document.body.classList.add('pas');
 }
 
 loadLocalSeed();
