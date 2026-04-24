@@ -261,6 +261,9 @@ body:not(.adm) .rc-row{grid-template-columns:minmax(180px,1fr) auto minmax(160px
 @media(max-width:600px){.mms{grid-template-columns:1fr}}
 /* Filter action buttons */
 .flt-acts{display:flex;gap:6px;margin-left:auto}
+.cat-sep{grid-column:1/-1;font-size:.7rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;padding:14px 4px 6px;border-top:1px dashed var(--border);margin-top:10px}
+.cat-sep:first-child{border-top:none;padding-top:0;margin-top:0}
+.cat-sep small{font-weight:400;color:var(--gray);text-transform:none;letter-spacing:0;margin-left:6px}
 body:not(.adm) .adm-only{display:none!important}
 body.adm #admBtn{display:none!important}
 body:not(.lead) .lead-only{display:none!important}
@@ -1191,19 +1194,43 @@ function loadLocalSeed(){
 function renderMinDropdowns(){
   const sel=document.getElementById('pMinSel');
   const cur=sel.value;
-  while(sel.options.length>2) sel.remove(2);
-  Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'')).forEach(([k,v])=>{
-    const o=document.createElement('option'); o.value=k; o.textContent=v.nome; sel.appendChild(o);
-  });
-  if(cur) sel.value=cur;
+  // Em modo líder: só uma opção, travada
+  if(S.leaderMin && S.mins[S.leaderMin]){
+    while(sel.options.length>0) sel.remove(0);
+    const o=document.createElement('option');
+    o.value=S.leaderMin;
+    o.textContent=S.mins[S.leaderMin].nome;
+    sel.appendChild(o);
+    sel.value=S.leaderMin;
+    sel.disabled=true;
+  } else {
+    sel.disabled=false;
+    while(sel.options.length>2) sel.remove(2);
+    Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'')).forEach(([k,v])=>{
+      const o=document.createElement('option'); o.value=k; o.textContent=v.nome; sel.appendChild(o);
+    });
+    if(cur) sel.value=cur;
+  }
   // Membros filter
   const mf=document.getElementById('mFilter');
   const mfc=mf.value;
-  while(mf.options.length>2) mf.remove(2); // preserva "Todos" e "Sem ministério"
-  Object.values(S.mins).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt',{sensitivity:'base'})).forEach(mv=>{
-    const o=document.createElement('option'); o.value=mv.nome; o.textContent=mv.nome; mf.appendChild(o);
-  });
-  if(mfc) mf.value=mfc;
+  if(S.leaderMin && S.mins[S.leaderMin]){
+    const minName=S.mins[S.leaderMin].nome;
+    while(mf.options.length>0) mf.remove(0);
+    const o=document.createElement('option');
+    o.value=minName;
+    o.textContent=minName;
+    mf.appendChild(o);
+    mf.value=minName;
+    mf.disabled=true;
+  } else {
+    mf.disabled=false;
+    while(mf.options.length>2) mf.remove(2);
+    Object.values(S.mins).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt',{sensitivity:'base'})).forEach(mv=>{
+      const o=document.createElement('option'); o.value=mv.nome; o.textContent=mv.nome; mf.appendChild(o);
+    });
+    if(mfc) mf.value=mfc;
+  }
 }
 
 function renderMeetDropdowns(){
@@ -1245,13 +1272,17 @@ window.pRefresh=function(){
   renderPresenca();
 };
 window.pClearFilter=function(){
-  document.getElementById('pMinSel').value='';
+  if(!S.leaderMin){
+    document.getElementById('pMinSel').value='';
+    S.pMin='';
+  }
   document.getElementById('pMeetSel').value='__all__';
-  S.pMin=''; S.pMeet='__all__';
+  S.pMeet='__all__';
   S.presHistory=[];
   document.getElementById('pDelMeetBtn').style.display='none';
   document.getElementById('pBackBtn').style.display='none';
-  renderPresenca();
+  if(S.leaderMin) applyLeaderFilters();
+  pRefresh();
 };
 window.deleteMeeting=function(){
   if(!S.admin||!S.db) return;
@@ -1299,10 +1330,11 @@ function renderDash(){
   let memberCount=members.length;
   if(S.leaderMin){
     const leaderMinName=S.mins[S.leaderMin]?.nome;
+    // Só conta MEMBROS do ministério (não inclui pastor responsável)
     memberCount=members.filter(m=>{
       const mk=Object.keys(S.members).find(k=>S.members[k]===m);
       const info=mk?ministeriosDoCooperador(mk):{participa:[],pastor:[]};
-      return info.participa.includes(leaderMinName)||info.pastor.includes(leaderMinName);
+      return info.participa.includes(leaderMinName);
     }).length;
   }
   document.getElementById('d-total').textContent=memberCount;
@@ -1679,8 +1711,9 @@ function renderMembros(){
 
 window.clearMemberFilters=function(){
   document.getElementById('mSearch').value='';
-  document.getElementById('mFilter').value='';
+  if(!S.leaderMin) document.getElementById('mFilter').value='';
   document.getElementById('mBadgeFilter').value='';
+  if(S.leaderMin) applyLeaderFilters();
   filterMembros();
 };
 window.filterMembros=function(){
@@ -1707,9 +1740,9 @@ window.filterMembros=function(){
       }
     }
     return true;
-  }).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'}));
-  document.getElementById('mCount').textContent=filtered.length+' exibidos';
-  document.getElementById('mGrid').innerHTML=filtered.map(([mk,m])=>{
+  });
+  // Função que renderiza um card
+  const renderCard=([mk,m])=>{
     const info=ministeriosDoCooperador(mk);
     const tagsParticipa=info.participa.length
       ? info.participa.map(mn=>`<span class="mt">${esc(mn)}</span>`).join('')
@@ -1728,7 +1761,46 @@ window.filterMembros=function(){
       ${pastorBlock}
       ${tel||anv?`<div class="mcd">${tel}${anv}</div>`:''}
     </div>`;
-  }).join('')||'<div class="ldg">Nenhum cooperador encontrado</div>';
+  };
+
+  if(S.leaderMin){
+    // Modo líder: ordena por categoria (pastor > líder > co-líder > membros) com separadores
+    const leaderMv=S.mins[S.leaderMin]||{};
+    const leaderMembros=leaderMv.membros||{};
+    const leaderName=leaderMv.nome;
+    function categoryOf([mk,m]){
+      const info=ministeriosDoCooperador(mk);
+      if(info.pastor.includes(leaderName)) return 0;
+      const pkClean=sk(m.nome);
+      const direct=leaderMembros[pkClean];
+      const role=(direct&&direct.role)||Object.values(leaderMembros).find(x=>sk(x.nome||'')===pkClean)?.role||'membro';
+      if(role==='lider') return 1;
+      if(role==='colider') return 2;
+      return 3;
+    }
+    filtered.sort((a,b)=>{
+      const ca=categoryOf(a), cb=categoryOf(b);
+      if(ca!==cb) return ca-cb;
+      return (a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'});
+    });
+    document.getElementById('mCount').textContent=filtered.length+' exibidos';
+    const catLabels=['Pastor responsável','Líder','Co-líder','Membros'];
+    const html=[]; let lastCat=-1;
+    filtered.forEach(entry=>{
+      const c=categoryOf(entry);
+      if(c!==lastCat){
+        const arr=filtered.filter(e=>categoryOf(e)===c);
+        html.push(`<div class="cat-sep">${catLabels[c]}<small>${arr.length}</small></div>`);
+        lastCat=c;
+      }
+      html.push(renderCard(entry));
+    });
+    document.getElementById('mGrid').innerHTML=html.join('')||'<div class="ldg">Nenhum cooperador encontrado</div>';
+  } else {
+    filtered.sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'}));
+    document.getElementById('mCount').textContent=filtered.length+' exibidos';
+    document.getElementById('mGrid').innerHTML=filtered.map(renderCard).join('')||'<div class="ldg">Nenhum cooperador encontrado</div>';
+  }
 };
 
 function renderMbMinsList(selectedSet){
