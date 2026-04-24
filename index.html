@@ -263,6 +263,11 @@ body:not(.adm) .rc-row{grid-template-columns:minmax(180px,1fr) auto minmax(160px
 .flt-acts{display:flex;gap:6px;margin-left:auto}
 body:not(.adm) .adm-only{display:none!important}
 body.adm #admBtn{display:none!important}
+body:not(.lead) .lead-only{display:none!important}
+body.lead #leadBtn{display:none!important}
+body.lead #admBtn{display:none!important}
+body.adm #leadBtn{display:none!important}
+.lead-badge{background:rgba(74,222,128,.2);color:#a7f3d0;padding:4px 10px;border-radius:12px;font-size:.72rem;font-weight:600}
 @media(max-width:620px){
   .hdr{padding:0 14px;gap:10px;height:auto;padding-top:8px;padding-bottom:8px}
   .main{padding:14px}
@@ -287,6 +292,9 @@ body.adm #admBtn{display:none!important}
     <span class="rt-lbl adm-only" id="rtLbl">Conectando...</span>
     <button class="hbtn adm-only" onclick="adminLogout()">Sair (admin)</button>
     <button class="hbtn" id="admBtn" onclick="adminLogin()" title="Entrar como administrador">🔒 Admin</button>
+    <button class="hbtn" id="leadBtn" onclick="leaderLogin()" title="Entrar como líder de ministério">👥 Líder</button>
+    <button class="hbtn lead-only" id="leadLogoutBtn" onclick="leaderLogout()">Sair (Líder)</button>
+    <span class="lead-only lead-badge" id="leadBadge"></span>
   </div>
 </div>
 
@@ -396,6 +404,26 @@ body.adm #admBtn{display:none!important}
   </div>
 </div>
 
+<!-- MODAL: Login do Líder -->
+<div class="ov" id="ovLeadLogin">
+  <div class="mod">
+    <h3>Login do Líder</h3>
+    <p class="sub">Selecione o ministério e digite a senha definida pelo administrador.</p>
+    <div class="fld"><label>Ministério</label>
+      <select id="llMin" class="fsel" style="width:100%">
+        <option value="">Selecione...</option>
+      </select>
+    </div>
+    <div class="fld"><label>Senha</label>
+      <input type="password" id="llPass" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')leaderLoginConfirm()">
+    </div>
+    <div class="mact">
+      <button class="btn btn-s" onclick="closeOv('ovLeadLogin')">Cancelar</button>
+      <button class="btn btn-p" onclick="leaderLoginConfirm()">Entrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Firebase -->
 <div class="ov" id="ovFb">
   <div class="mod">
@@ -467,6 +495,7 @@ body.adm #admBtn{display:none!important}
       <div><label>Nome do Ministério</label><input id="emName" placeholder="Ex: LOUVOR"></div>
       <div><label>Pastor Responsável</label><input id="emPastor" placeholder="Nome do pastor..."></div>
     </div>
+    <div class="fld"><label>Senha do líder (opcional)</label><input id="emSenha" placeholder="Em branco = sem acesso de líder"><div class="hint">O líder entra pelo botão 👥 Líder com o nome do ministério e esta senha</div></div>
     <div style="margin-bottom:10px">
       <strong style="font-size:.85rem;color:var(--navy)">Membros do Ministério</strong>
     </div>
@@ -632,6 +661,7 @@ const S = {
   listeners: {},
   seeded: false,
   admin: false,
+  leaderMin: null,
   presHistory: []
 };
 
@@ -810,15 +840,20 @@ window.ST=function(tab,btn){
   }
   if(tab==='membros'){
     const ms=document.getElementById('mSearch'); if(ms) ms.value='';
-    const mf=document.getElementById('mFilter'); if(mf) mf.value='';
     const mb=document.getElementById('mBadgeFilter'); if(mb) mb.value='';
+    const mf=document.getElementById('mFilter');
+    if(mf && !S.leaderMin) mf.value='';
+    if(S.leaderMin) applyLeaderFilters();
     renderMembros();
   }
   if(tab==='presenca'){
-    // Limpa filtro ao entrar na aba Reuniões
-    const psel=document.getElementById('pMinSel'); if(psel) psel.value='';
+    if(!S.leaderMin){
+      const psel=document.getElementById('pMinSel'); if(psel) psel.value='';
+      S.pMin='';
+    }
     const pmt=document.getElementById('pMeetSel'); if(pmt) pmt.value='__all__';
-    S.pMin=''; S.pMeet='__all__'; S.presHistory=[];
+    S.pMeet='__all__'; S.presHistory=[];
+    if(S.leaderMin) applyLeaderFilters();
     pRefresh();
   }
   if(tab==='dashboard') renderDash();
@@ -853,6 +888,73 @@ window.adminLogout=function(){
   localStorage.removeItem('hermom_admin');
   location.reload();
 };
+
+window.leaderLogin=function(){
+  if(S.admin){ toast('Você está logado como admin','er'); return; }
+  const sel=document.getElementById('llMin');
+  sel.innerHTML='<option value="">Selecione...</option>';
+  Object.entries(S.mins)
+    .filter(([,v])=>(v.senha||'').length>0)
+    .sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'}))
+    .forEach(([k,v])=>{
+      const o=document.createElement('option'); o.value=k; o.textContent=v.nome; sel.appendChild(o);
+    });
+  document.getElementById('llPass').value='';
+  if(sel.options.length<=1){
+    toast('Nenhum ministério tem senha cadastrada. Peça ao admin.','er');
+    return;
+  }
+  showOv('ovLeadLogin');
+};
+
+window.leaderLoginConfirm=function(){
+  const mk=document.getElementById('llMin').value;
+  const pass=document.getElementById('llPass').value;
+  if(!mk){ toast('Selecione o ministério','er'); return; }
+  const mv=S.mins[mk];
+  if(!mv||!mv.senha){ toast('Este ministério não tem senha cadastrada','er'); return; }
+  if(mv.senha!==pass){ toast('Senha incorreta','er'); return; }
+  S.leaderMin=mk;
+  localStorage.setItem('hermom_leader_min',mk);
+  document.body.classList.add('lead');
+  const badge=document.getElementById('leadBadge');
+  if(badge) badge.textContent=mv.nome;
+  closeOv('ovLeadLogin');
+  toast(`Entrou como líder de ${mv.nome}`,'ok');
+  applyLeaderFilters();
+  const active=document.querySelector('.tab.on')?.id||'';
+  if(active==='tab-dashboard') renderDash();
+  if(active==='tab-ministerios') renderMins();
+  if(active==='tab-membros') renderMembros();
+  if(active==='tab-presenca') pRefresh();
+};
+
+window.leaderLogout=function(){
+  localStorage.removeItem('hermom_leader_min');
+  location.reload();
+};
+
+function applyLeaderFilters(){
+  if(!S.leaderMin) return;
+  const mv=S.mins[S.leaderMin];
+  if(!mv) return;
+  // Trava o dropdown de ministério na aba Reuniões
+  const psel=document.getElementById('pMinSel');
+  if(psel){
+    psel.value=S.leaderMin;
+    psel.disabled=true;
+    S.pMin=S.leaderMin;
+  }
+  // Trava o filtro de ministério na aba Cooperadores
+  const mfilter=document.getElementById('mFilter');
+  if(mfilter){
+    mfilter.value=mv.nome;
+    mfilter.disabled=true;
+  }
+  // Atualiza o badge
+  const badge=document.getElementById('leadBadge');
+  if(badge) badge.textContent=mv.nome;
+}
 window.showNewMeetModal=function(){
   if(!S.admin) return;
   if(!S.db){ toast('Aguarde a conexão com Firebase','er'); return; }
@@ -945,10 +1047,20 @@ function setupListeners(m){
   });
   S.listeners.mins=onValue(ref(db,'hermom/ministerios_config'),(snap)=>{
     S.mins=snap.val()||{};
+    // Aplica estado de líder se salvo em localStorage e ministério existe
+    const storedLead=localStorage.getItem('hermom_leader_min');
+    if(storedLead && S.mins[storedLead] && !S.admin){
+      S.leaderMin=storedLead;
+      document.body.classList.add('lead');
+    } else if(storedLead && !S.mins[storedLead]){
+      localStorage.removeItem('hermom_leader_min');
+    }
     renderMinDropdowns();
+    if(S.leaderMin) applyLeaderFilters();
     if(document.getElementById('tab-ministerios').classList.contains('on')) renderMins();
     if(document.getElementById('tab-presenca').classList.contains('on')) pRefresh();
     if(document.getElementById('tab-dashboard').classList.contains('on')) renderDash();
+    if(document.getElementById('tab-membros').classList.contains('on')) renderMembros();
   });
   S.listeners.meetings=onValue(ref(db,'hermom/reunioes'),(snap)=>{
     S.meetings=snap.val()||{};
@@ -1045,7 +1157,13 @@ function populateMemberDropdowns(){
 }
 
 window.pRefresh=function(){
-  S.pMin=document.getElementById('pMinSel').value;
+  // Modo líder: força o ministério sempre
+  if(S.leaderMin){
+    document.getElementById('pMinSel').value=S.leaderMin;
+    S.pMin=S.leaderMin;
+  } else {
+    S.pMin=document.getElementById('pMinSel').value;
+  }
   S.pMeet=document.getElementById('pMeetSel').value;
   const delBtn=document.getElementById('pDelMeetBtn');
   if(delBtn) delBtn.style.display=(S.pMeet && S.pMeet!=='__all__' && S.admin)?'inline-block':'none';
@@ -1101,28 +1219,40 @@ function memberMins(memberKey){
 // ============================== DASHBOARD ==============================
 function renderDash(){
   updateWarn();
+  // Modo líder: filtra S.mins para só o ministério do líder
+  const scopedMins=S.leaderMin?{[S.leaderMin]:S.mins[S.leaderMin]}:S.mins;
   const members=Object.values(S.members);
-  const minKeys=Object.keys(S.mins);
+  const minKeys=Object.keys(scopedMins);
   const meetings=sortMeets(Object.keys(S.meetings));
-  document.getElementById('d-total').textContent=members.length;
+  // No modo líder, contagem de cooperadores limitada aos do ministério
+  let memberCount=members.length;
+  if(S.leaderMin){
+    const leaderMinName=S.mins[S.leaderMin]?.nome;
+    memberCount=members.filter(m=>{
+      const mk=Object.keys(S.members).find(k=>S.members[k]===m);
+      const info=mk?ministeriosDoCooperador(mk):{participa:[],pastor:[]};
+      return info.participa.includes(leaderMinName)||info.pastor.includes(leaderMinName);
+    }).length;
+  }
+  document.getElementById('d-total').textContent=memberCount;
   document.getElementById('d-mins').textContent=minKeys.length;
   document.getElementById('d-reun').textContent=meetings.length;
-  // Taxa geral: soma de presenças em todos os ministerios × reuniões
+  // Taxa geral: soma de presenças (filtrada ao líder se for o caso)
   let tp=0,te=0;
   meetings.forEach(mk=>{
-    Object.entries(S.mins).forEach(([minKey,mv])=>{
+    Object.entries(scopedMins).forEach(([minKey,mv])=>{
       const r=calcMeetStats((S.presencas[mk]||{})[minKey]||{},mv.membros);
       tp+=r.present; te+=r.eligible;
     });
   });
   document.getElementById('d-taxa').textContent=te>0?Math.round((tp/te)*100)+'%':'—';
   // Member counts bars
-  const counts=Object.entries(S.mins).map(([k,v])=>[v.nome,Object.keys(v.membros||{}).length]).sort((a,b)=>b[1]-a[1]);
+  const counts=Object.entries(scopedMins).map(([k,v])=>[v.nome,Object.keys(v.membros||{}).length]).sort((a,b)=>b[1]-a[1]);
   const maxC=counts[0]?.[1]||1;
   document.getElementById('d-mbars').innerHTML=counts.map(([nm,c])=>`<div class="br"><div class="blbl" title="${esc(nm)}">${esc(nm)}</div><div class="btr"><div class="bf" style="width:${(c/maxC)*100}%"></div></div><div class="bn">${c}</div></div>`).join('')||'<div style="color:var(--gray);font-size:.8rem">Sem dados</div>';
   // Presença bars por ministério
   const pctByMin={};
-  Object.entries(S.mins).forEach(([mk,mv])=>{
+  Object.entries(scopedMins).forEach(([mk,mv])=>{
     let p=0,e=0;
     meetings.forEach(meetKey=>{
       const r=calcMeetStats((S.presencas[meetKey]||{})[mk]||{},mv.membros);
@@ -1138,7 +1268,7 @@ function renderDash(){
   // Trend: taxa global por reunião
   const trend=meetings.map(mk=>{
     let p=0,e=0;
-    Object.entries(S.mins).forEach(([minKey,mv])=>{
+    Object.entries(scopedMins).forEach(([minKey,mv])=>{
       const r=calcMeetStats((S.presencas[mk]||{})[minKey]||{},mv.membros);
       p+=r.present; e+=r.eligible;
     });
@@ -1189,7 +1319,8 @@ function renderDash(){
 window.renderMins=function(){
   const meetings=sortMeets(Object.keys(S.meetings));
   const q=(document.getElementById('minSearch')?.value||'').toLowerCase().trim();
-  const entries=Object.entries(S.mins).filter(([,mv])=>{
+  const entries=Object.entries(S.mins).filter(([mk,mv])=>{
+    if(S.leaderMin && mk!==S.leaderMin) return false;
     if(!q) return true;
     return (mv.nome||'').toLowerCase().includes(q) || (mv.pastor||'').toLowerCase().includes(q);
   }).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'}));
@@ -1275,6 +1406,7 @@ window.openEditMin=function(mk){
   document.getElementById('emTitle').textContent='Editar: '+mv.nome;
   document.getElementById('emName').value=mv.nome||'';
   document.getElementById('emPastor').value=mv.pastor||'';
+  document.getElementById('emSenha').value=mv.senha||'';
   renderEditMinList();
   populateMemberDropdowns();
   showOv('ovEditMin');
@@ -1341,6 +1473,7 @@ window.saveMinConfig=async function(){
   if(!newName){ toast('Nome do ministério é obrigatório','er'); return; }
   S.editMinData.nome=newName;
   S.editMinData.pastor=document.getElementById('emPastor').value.trim();
+  S.editMinData.senha=document.getElementById('emSenha').value.trim();
   // Detecta membros recém-adicionados e removidos
   const oldMembros=(S.mins[S.editMinKey]?.membros)||{};
   const newMembros=S.editMinData.membros||{};
@@ -1475,13 +1608,18 @@ window.filterMembros=function(){
   const q=document.getElementById('mSearch').value.toLowerCase();
   const minF=document.getElementById('mFilter').value;
   const badgeF=document.getElementById('mBadgeFilter').value;
+  // Em modo líder, força o filtro pelo ministério do líder
+  const leaderMinName=S.leaderMin?S.mins[S.leaderMin]?.nome:null;
   const entries=Object.entries(S.members);
   const filtered=entries.filter(([mk,m])=>{
     const nm=(m.nome||'').toLowerCase();
     if(!nm.includes(q)) return false;
     if(badgeF==='sim' && !m.badge) return false;
     if(badgeF==='nao' && m.badge) return false;
-    if(minF){
+    if(leaderMinName){
+      const info=ministeriosDoCooperador(mk);
+      if(!info.participa.includes(leaderMinName) && !info.pastor.includes(leaderMinName)) return false;
+    } else if(minF){
       const info=ministeriosDoCooperador(mk);
       if(minF==='__sem__'){
         if(info.participa.length>0) return false;
@@ -2006,7 +2144,8 @@ function renderAllMeetings(minKey,membros,meetings,canEdit){
 function renderMacro(meetings,canEdit){
   const meetCols=meetings.map(mk=>`<th class="c" style="font-size:.68rem">${displayDate(mk)}<br><span style="opacity:.6">${yearOf(mk)}</span></th>`).join('');
   let rows='';
-  Object.entries(S.mins).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'})).forEach(([mk,mv])=>{
+  const scopedMinsMacro=S.leaderMin?{[S.leaderMin]:S.mins[S.leaderMin]}:S.mins;
+  Object.entries(scopedMinsMacro).sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'})).forEach(([mk,mv])=>{
     const cells=meetings.map(meetKey=>{
       const r=calcMeetStats((S.presencas[meetKey]||{})[mk]||{},mv.membros);
       const v=pct(r.present,r.eligible);
