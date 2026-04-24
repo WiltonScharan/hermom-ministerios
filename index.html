@@ -290,7 +290,6 @@ body.adm #leadBtn{display:none!important}
 .lead-badge{background:rgba(74,222,128,.2);color:#a7f3d0;padding:4px 10px;border-radius:12px;font-size:.72rem;font-weight:600}
 body:not(.pas) .pas-only{display:none!important}
 body.pas .adm-only{display:none!important}
-body.pas .private-only{display:none!important}
 .pas-badge{background:rgba(167,139,250,.25);color:#c4b5fd;padding:4px 10px;border-radius:12px;font-size:.7rem;font-weight:700;letter-spacing:.04em}
 .btn-pas{background:#5b21b6;color:#fff}
 .btn-pas:hover{background:#4c1d95}
@@ -477,7 +476,7 @@ body.adm .gate, body.lead .gate, body.pas .gate{display:none}
     <div class="ph">
       <div class="pt">Minhas Anotações <small id="anot-meta"></small></div>
     </div>
-    <div class="adm-only" style="margin-bottom:18px">
+    <div id="anotMinWrap" style="margin-bottom:18px;display:none">
       <label style="font-size:.78rem;color:var(--gray);font-weight:600;display:block;margin-bottom:4px">Ministério</label>
       <select id="anotMin" class="fsel" style="min-width:280px" onchange="renderAnotacoes()">
         <option value="">— Selecione —</option>
@@ -2809,8 +2808,13 @@ window.diagExcluded=function(meetKey){
 // ============================== ANOTAÇÕES (Atas + Listas) ==============================
 function getAnotMin(){
   if(S.leaderMin) return S.leaderMin;
-  if(S.admin) return document.getElementById('anotMin')?.value || '';
+  if(S.admin || S.pastor) return document.getElementById('anotMin')?.value || '';
   return '';
+}
+function canEditPrivate(minKey){
+  if(S.admin) return true;
+  if(S.leaderMin && S.leaderMin===minKey) return true;
+  return false;
 }
 function populateAnotMinDropdown(){
   const sel=document.getElementById('anotMin');
@@ -2830,17 +2834,15 @@ function fmtDateBR(d){
 }
 
 window.renderAnotacoes=function(){
-  // Garante o dropdown populado para admin
-  if(S.admin && !S.leaderMin) populateAnotMinDropdown();
-  // Trava dropdown para líder
+  const wrap=document.getElementById('anotMinWrap');
+  // Líder: dropdown some/trava no ministério dele
   if(S.leaderMin){
-    const sel=document.getElementById('anotMin');
-    if(sel){
-      while(sel.options.length>0) sel.remove(0);
-      const o=document.createElement('option');
-      o.value=S.leaderMin; o.textContent=S.mins[S.leaderMin]?.nome||S.leaderMin;
-      sel.appendChild(o); sel.value=S.leaderMin; sel.disabled=true;
-    }
+    if(wrap) wrap.style.display='none';
+  } else if(S.admin || S.pastor){
+    populateAnotMinDropdown();
+    if(wrap) wrap.style.display='block';
+  } else {
+    if(wrap) wrap.style.display='none';
   }
   const minKey=getAnotMin();
   const meta=document.getElementById('anot-meta');
@@ -2884,18 +2886,21 @@ window.renderAnotacoes=function(){
     </div>`;
   }).join(''):'<div class="empty-state">Nenhuma lista de presença criada. Clique em "+ Nova Lista" para começar.</div>';
 
+  const canEdit=canEditPrivate(minKey);
+  const novaAta=canEdit?`<button class="btn btn-g btn-sm" onclick="openNewAta()">+ Nova Ata</button>`:'';
+  const novaLista=canEdit?`<button class="btn btn-g btn-sm" onclick="openNewLista()">+ Nova Lista</button>`:'';
   document.getElementById('anotContent').innerHTML=`
     <div class="anot-section">
       <div class="anot-section-head">
         <h3>Atas de Reuniões <small>${atasArr.length}</small></h3>
-        <button class="btn btn-g btn-sm" onclick="openNewAta()">+ Nova Ata</button>
+        ${novaAta}
       </div>
       ${atasHtml}
     </div>
     <div class="anot-section">
       <div class="anot-section-head">
         <h3>Listas de Presença Paralelas <small>${listasArr.length}</small></h3>
-        <button class="btn btn-g btn-sm" onclick="openNewLista()">+ Nova Lista</button>
+        ${novaLista}
       </div>
       ${listasHtml}
     </div>
@@ -2906,23 +2911,35 @@ window.renderAnotacoes=function(){
 window.openNewAta=function(){
   const minKey=getAnotMin();
   if(!minKey){ toast('Selecione um ministério','er'); return; }
+  if(!canEditPrivate(minKey)){ toast('Sem permissão para criar','er'); return; }
   S.editAta={minKey,id:null};
   document.getElementById('ataTitle').textContent='Nova Ata';
   document.getElementById('ataTitulo').value='';
   document.getElementById('ataData').value=new Date().toISOString().slice(0,10);
   document.getElementById('ataTexto').value='';
+  document.getElementById('ataTitulo').readOnly=false;
+  document.getElementById('ataData').readOnly=false;
+  document.getElementById('ataTexto').readOnly=false;
   document.getElementById('ataDelBtn').style.display='none';
+  document.querySelectorAll('#ovAta .mact .btn-p').forEach(b=>b.style.display='inline-block');
   showOv('ovAta');
 };
 window.openAta=function(minKey,id){
   const ata=(((S.private||{})[minKey]||{}).atas||{})[id];
   if(!ata) return;
   S.editAta={minKey,id};
-  document.getElementById('ataTitle').textContent='Editar Ata';
+  const canEdit=canEditPrivate(minKey);
+  document.getElementById('ataTitle').textContent=canEdit?'Editar Ata':'Visualizar Ata';
   document.getElementById('ataTitulo').value=ata.titulo||'';
   document.getElementById('ataData').value=ata.data||'';
   document.getElementById('ataTexto').value=ata.texto||'';
-  document.getElementById('ataDelBtn').style.display='inline-block';
+  // Inputs read-only para quem não pode editar
+  document.getElementById('ataTitulo').readOnly=!canEdit;
+  document.getElementById('ataData').readOnly=!canEdit;
+  document.getElementById('ataTexto').readOnly=!canEdit;
+  // Botões de salvar/excluir só para quem pode editar
+  document.getElementById('ataDelBtn').style.display=canEdit?'inline-block':'none';
+  document.querySelectorAll('#ovAta .mact .btn-p').forEach(b=>b.style.display=canEdit?'inline-block':'none');
   showOv('ovAta');
 };
 window.saveAta=async function(){
@@ -2993,6 +3010,9 @@ window.openLista=function(minKey,id){
   S.editLista={minKey,id};
   document.getElementById('ldTitle').textContent=lista.titulo||'Lista';
   document.getElementById('ldMeta').textContent=`${S.mins[minKey]?.nome||minKey} · ${fmtDateBR(lista.data)}`;
+  // Esconde botões de admin/líder para pastor
+  const canEdit=canEditPrivate(minKey);
+  document.querySelectorAll('#ovListaDetail .mact .btn-d, #ovListaDetail .mact .btn-p').forEach(b=>b.style.display=canEdit?'inline-block':'none');
   renderListaRollCall();
   showOv('ovListaDetail');
 };
@@ -3004,7 +3024,7 @@ function renderListaRollCall(){
   const membros=S.mins[minKey]?.membros||{};
   const presencas=lista.presencas||{};
   const sortedKeys=sortMemberEntries(Object.entries(membros)).map(([k])=>k);
-  const canEdit=S.admin || (S.leaderMin===minKey);
+  const canEdit=canEditPrivate(minKey);
   let p=0,e=0;
   sortedKeys.forEach(pk=>{
     const {status}=decodeStatus(presencas[pk]);
