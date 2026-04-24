@@ -214,6 +214,9 @@ body.adm .admbar{display:none}
 .lb-close:hover{background:rgba(255,255,255,.3)}
 @keyframes lbIn{from{opacity:0}to{opacity:1}}
 img.avatar{cursor:zoom-in}
+.motivo-close{position:absolute;top:14px;right:14px;background:var(--grayl);border:none;width:32px;height:32px;border-radius:50%;font-size:.95rem;color:var(--gray);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.motivo-close:hover{background:var(--red);color:#fff}
+.motivo-text{background:var(--amberl);border-left:4px solid var(--amber);padding:14px 18px;border-radius:var(--rs);color:var(--navy);font-size:1rem;line-height:1.5;margin:6px 0 4px;white-space:pre-wrap;word-break:break-word}
 .mdc-info{background:var(--cream);border-radius:var(--rs);padding:14px 16px;margin-top:6px}
 .mdc-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem;color:var(--navy)}
 .mdc-row:last-child{border-bottom:none}
@@ -652,6 +655,20 @@ body.adm .gate, body.lead .gate{display:none}
   </div>
 </div>
 
+<!-- MODAL: Motivo da ausência -->
+<div class="ov" id="ovMotivo">
+  <div class="mod" style="max-width:420px;position:relative">
+    <button class="motivo-close" onclick="closeOv('ovMotivo')" aria-label="Fechar">✕</button>
+    <h3>Justificativa de Ausência</h3>
+    <p class="sub" id="motivoMeta"></p>
+    <div class="motivo-text" id="motivoText"></div>
+    <div class="mact">
+      <button class="btn btn-p adm-only" id="motivoEditBtn">Editar</button>
+      <button class="btn btn-s" onclick="closeOv('ovMotivo')">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- LIGHTBOX (zoom da foto) -->
 <div class="lb" id="lightbox" onclick="closeLb()">
   <img id="lbImg" src="" alt="Foto ampliada">
@@ -806,18 +823,51 @@ function decodeStatus(v){
 function cellHtml(val, clickable, minKey, meetKey, pKey){
   const {status,just}=decodeStatus(val);
   const tip=just?` title="${esc(just)}"`:'';
-  const onc=clickable?`onclick="openCellPop(event,'${minKey}','${meetKey}','${pKey}','${(just||'').replace(/'/g,"\\'")}')"`:'';
-  const nc=clickable?'':'no-click';
+  const isJust=status==='justificado';
+  // Justificadas: sempre clicáveis (mostra motivo). Outras: somente se clickable=true
+  let onc='', nc='no-click';
+  if(isJust){
+    onc=`onclick="showMotivoPopup(event,'${esc(minKey)}','${esc(meetKey)}','${esc(pKey)}')"`;
+    nc='';
+  } else if(clickable){
+    onc=`onclick="openCellPop(event,'${minKey}','${meetKey}','${pKey}','${(just||'').replace(/'/g,"\\'")}')"`;
+    nc='';
+  }
   if(!status) return `<span class="ss2 e ${nc}" ${onc}${tip}>?</span>`;
   if(status==='presente') return `<span class="ss2 p ${nc}" ${onc}${tip}>✓</span>`;
   if(status==='ausente') return `<span class="ss2 a ${nc}" ${onc}${tip}>✗</span>`;
   if(status==='nao_membro') return `<span class="ss2 n ${nc}" ${onc}${tip}>—</span>`;
-  if(status==='justificado'){
+  if(isJust){
     const short=(just||'').substring(0,10)+(just&&just.length>10?'...':'');
     return `<span class="ss2 j ${nc}" ${onc} title="${esc(just)}">${esc(short)||'justif.'}</span>`;
   }
   return `<span class="ss2 e ${nc}" ${onc}>?</span>`;
 }
+
+window.showMotivoPopup=function(event,minKey,meetKey,pk){
+  event.stopPropagation();
+  const presData=(S.presencas[meetKey]||{})[minKey]||{};
+  const v=presData[pk];
+  const {status,just}=decodeStatus(v);
+  if(status!=='justificado') return;
+  const member=(S.mins[minKey]?.membros||{})[pk]
+    ||Object.values(S.mins[minKey]?.membros||{}).find(m=>sk(m.nome||'')===pk);
+  const memberName=member?.nome||pk.replace(/_/g,' ');
+  const meetLabel=S.meetings[meetKey]?.data||meetKey;
+  const minName=S.mins[minKey]?.nome||minKey;
+  document.getElementById('motivoMeta').innerHTML=`<strong>${esc(memberName)}</strong> · ${esc(minName)} · ${esc(meetLabel)}`;
+  document.getElementById('motivoText').textContent=just||'(sem motivo registrado)';
+  // Botão Editar (só admin) - reabre o cell editor original na posição do clique
+  const targetCell=event.currentTarget;
+  const editBtn=document.getElementById('motivoEditBtn');
+  editBtn.onclick=()=>{
+    closeOv('ovMotivo');
+    if(S.admin){
+      openCellPop({stopPropagation:()=>{},currentTarget:targetCell},minKey,meetKey,pk,just||'');
+    }
+  };
+  showOv('ovMotivo');
+};
 
 function calcMeetStats(presData,ministryMembers){
   // Cálculo correto: todos os membros do ministério contam como elegíveis,
