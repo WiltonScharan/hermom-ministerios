@@ -275,6 +275,18 @@ body.adm #leadBtn{display:none!important}
 .gate-text{color:var(--gray);margin:26px 0 22px;font-size:.92rem}
 .gate-btn{width:100%;margin-bottom:10px;padding:13px;font-size:.95rem}
 .gate-foot{font-size:.72rem;color:var(--gray);margin-top:18px}
+.gate-form{display:none;background:var(--cream);padding:14px;border-radius:var(--rs);margin-bottom:10px;animation:gateFormIn .22s ease}
+.gate-form.on{display:block}
+.gate-pass-wrap{position:relative;margin-bottom:10px}
+.gate-pass-wrap input{width:100%;padding:12px 44px 12px 14px;border:1px solid var(--border);border-radius:var(--rs);font-size:.92rem;font-family:inherit;outline:none;color:var(--navy);background:#fff}
+.gate-pass-wrap input:focus{border-color:var(--navy2)}
+.gate-pass-wrap .fsel{background:#fff}
+.gate-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px 10px;font-size:1.05rem;color:var(--gray);line-height:1;border-radius:6px}
+.gate-eye:hover{color:var(--navy);background:var(--grayl)}
+.gate-form .gate-btn{margin-bottom:0}
+.shake{animation:shake .45s}
+@keyframes shake{0%,100%{transform:translateX(0)}15%,45%,75%{transform:translateX(-8px)}30%,60%,90%{transform:translateX(8px)}}
+@keyframes gateFormIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes gateIn{from{opacity:0}to{opacity:1}}
 body.adm .gate, body.lead .gate{display:none}
 @media(max-width:620px){
@@ -294,8 +306,25 @@ body.adm .gate, body.lead .gate{display:none}
     <div class="gate-title">Igreja Hermom</div>
     <div class="gate-sub">Controle de Ministérios</div>
     <p class="gate-text">Faça login para acessar o sistema.</p>
-    <button class="btn btn-p gate-btn" onclick="adminLogin()">🔒 Entrar como Administrador</button>
-    <button class="btn btn-gold gate-btn" onclick="leaderLogin()">👥 Entrar como Líder</button>
+    <button class="btn btn-p gate-btn" onclick="toggleGateForm('admin')">🔒 Entrar como Administrador</button>
+    <div class="gate-form" id="gateAdminForm">
+      <div class="gate-pass-wrap">
+        <input type="password" id="gateAdminPass" placeholder="Senha de administrador" onkeydown="if(event.key==='Enter')submitAdminLogin()">
+        <button type="button" class="gate-eye" onclick="togglePass('gateAdminPass',this)" title="Mostrar/ocultar senha">👁</button>
+      </div>
+      <button class="btn btn-p gate-btn" onclick="submitAdminLogin()">Entrar</button>
+    </div>
+    <button class="btn btn-gold gate-btn" onclick="toggleGateForm('lead')">👥 Entrar como Líder</button>
+    <div class="gate-form" id="gateLeaderForm">
+      <select id="gateLeaderMin" class="fsel" style="width:100%;margin-bottom:10px">
+        <option value="">Selecione o ministério...</option>
+      </select>
+      <div class="gate-pass-wrap">
+        <input type="password" id="gateLeaderPass" placeholder="Senha do ministério" onkeydown="if(event.key==='Enter')submitLeaderLogin()">
+        <button type="button" class="gate-eye" onclick="togglePass('gateLeaderPass',this)" title="Mostrar/ocultar senha">👁</button>
+      </div>
+      <button class="btn btn-p gate-btn" onclick="submitLeaderLogin()">Entrar</button>
+    </div>
     <p class="gate-foot">Use as credenciais definidas pelo administrador.</p>
   </div>
 </div>
@@ -423,26 +452,6 @@ body.adm .gate, body.lead .gate{display:none}
   <div class="cp-ja" id="cpJust" style="display:none">
     <input id="cpJustTxt" placeholder="Motivo da ausência..." onkeydown="if(event.key==='Enter')confirmJust()">
     <button onclick="confirmJust()">OK</button>
-  </div>
-</div>
-
-<!-- MODAL: Login do Líder -->
-<div class="ov" id="ovLeadLogin">
-  <div class="mod">
-    <h3>Login do Líder</h3>
-    <p class="sub">Selecione o ministério e digite a senha definida pelo administrador.</p>
-    <div class="fld"><label>Ministério</label>
-      <select id="llMin" class="fsel" style="width:100%">
-        <option value="">Selecione...</option>
-      </select>
-    </div>
-    <div class="fld"><label>Senha</label>
-      <input type="password" id="llPass" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')leaderLoginConfirm()">
-    </div>
-    <div class="mact">
-      <button class="btn btn-s" onclick="closeOv('ovLeadLogin')">Cancelar</button>
-      <button class="btn btn-p" onclick="leaderLoginConfirm()">Entrar</button>
-    </div>
   </div>
 </div>
 
@@ -886,10 +895,52 @@ window.closeOv=function(id){ document.getElementById(id).classList.remove('on');
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('on'); }));
 
 window.showFbModal=function(){ /* kept hidden — config is embedded */ };
-window.adminLogin=function(){
-  const p=prompt('Senha de administrador:');
-  if(p===null) return;
-  if(p===ADMIN_PASS){
+window.adminLogin=function(){ toggleGateForm('admin'); };
+window.toggleGateForm=function(which){
+  const admForm=document.getElementById('gateAdminForm');
+  const leadForm=document.getElementById('gateLeaderForm');
+  if(which==='admin'){
+    leadForm.classList.remove('on');
+    const opening=!admForm.classList.contains('on');
+    admForm.classList.toggle('on');
+    if(opening){
+      document.getElementById('gateAdminPass').value='';
+      setTimeout(()=>document.getElementById('gateAdminPass').focus(),80);
+    }
+  } else if(which==='lead'){
+    admForm.classList.remove('on');
+    const opening=!leadForm.classList.contains('on');
+    if(opening){
+      // Popular dropdown
+      const sel=document.getElementById('gateLeaderMin');
+      sel.innerHTML='<option value="">Selecione o ministério...</option>';
+      const withSenha=Object.entries(S.mins)
+        .filter(([,v])=>(v.senha||'').length>0)
+        .sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'}));
+      if(!withSenha.length){ toast('Nenhum ministério tem senha cadastrada. Peça ao admin.','er'); return; }
+      withSenha.forEach(([k,v])=>{
+        const o=document.createElement('option'); o.value=k; o.textContent=v.nome; sel.appendChild(o);
+      });
+      document.getElementById('gateLeaderPass').value='';
+    }
+    leadForm.classList.toggle('on');
+  }
+};
+window.togglePass=function(inputId,btn){
+  const input=document.getElementById(inputId);
+  if(input.type==='password'){ input.type='text'; btn.textContent='🙈'; }
+  else { input.type='password'; btn.textContent='👁'; }
+};
+function shakeForm(id){
+  const el=document.getElementById(id);
+  el.classList.remove('shake');
+  void el.offsetWidth;
+  el.classList.add('shake');
+  setTimeout(()=>el.classList.remove('shake'),500);
+}
+window.submitAdminLogin=function(){
+  const pass=document.getElementById('gateAdminPass').value;
+  if(pass===ADMIN_PASS){
     localStorage.setItem('hermom_admin','1');
     S.admin=true;
     document.body.classList.add('adm');
@@ -899,49 +950,32 @@ window.adminLogin=function(){
     if(active==='tab-ministerios') renderMins();
     if(active==='tab-membros') renderMembros();
     if(active==='tab-presenca') pRefresh();
-    // Atualiza visibilidade do botão excluir reunião
     const delBtn=document.getElementById('pDelMeetBtn');
     if(delBtn) delBtn.style.display=(S.pMeet && S.pMeet!=='__all__')?'inline-block':'none';
   } else {
+    shakeForm('gateAdminForm');
+    document.getElementById('gateAdminPass').value='';
+    document.getElementById('gateAdminPass').focus();
     toast('Senha incorreta','er');
   }
 };
-window.adminLogout=function(){
-  localStorage.removeItem('hermom_admin');
-  location.reload();
-};
-
-window.leaderLogin=function(){
-  if(S.admin){ toast('Você está logado como admin','er'); return; }
-  const sel=document.getElementById('llMin');
-  sel.innerHTML='<option value="">Selecione...</option>';
-  Object.entries(S.mins)
-    .filter(([,v])=>(v.senha||'').length>0)
-    .sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt',{sensitivity:'base'}))
-    .forEach(([k,v])=>{
-      const o=document.createElement('option'); o.value=k; o.textContent=v.nome; sel.appendChild(o);
-    });
-  document.getElementById('llPass').value='';
-  if(sel.options.length<=1){
-    toast('Nenhum ministério tem senha cadastrada. Peça ao admin.','er');
-    return;
-  }
-  showOv('ovLeadLogin');
-};
-
-window.leaderLoginConfirm=function(){
-  const mk=document.getElementById('llMin').value;
-  const pass=document.getElementById('llPass').value;
+window.submitLeaderLogin=function(){
+  const mk=document.getElementById('gateLeaderMin').value;
+  const pass=document.getElementById('gateLeaderPass').value;
   if(!mk){ toast('Selecione o ministério','er'); return; }
   const mv=S.mins[mk];
-  if(!mv||!mv.senha){ toast('Este ministério não tem senha cadastrada','er'); return; }
-  if(mv.senha!==pass){ toast('Senha incorreta','er'); return; }
+  if(!mv||!mv.senha||mv.senha!==pass){
+    shakeForm('gateLeaderForm');
+    document.getElementById('gateLeaderPass').value='';
+    document.getElementById('gateLeaderPass').focus();
+    toast('Senha incorreta','er');
+    return;
+  }
   S.leaderMin=mk;
   localStorage.setItem('hermom_leader_min',mk);
   document.body.classList.add('lead');
   const badge=document.getElementById('leadBadge');
   if(badge) badge.textContent=mv.nome;
-  closeOv('ovLeadLogin');
   toast(`Entrou como líder de ${mv.nome}`,'ok');
   applyLeaderFilters();
   const active=document.querySelector('.tab.on')?.id||'';
@@ -950,6 +984,12 @@ window.leaderLoginConfirm=function(){
   if(active==='tab-membros') renderMembros();
   if(active==='tab-presenca') pRefresh();
 };
+window.adminLogout=function(){
+  localStorage.removeItem('hermom_admin');
+  location.reload();
+};
+
+window.leaderLogin=function(){ toggleGateForm('lead'); };
 
 window.leaderLogout=function(){
   localStorage.removeItem('hermom_leader_min');
