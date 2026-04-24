@@ -310,7 +310,7 @@ body.adm .gate, body.lead .gate{display:none}
     <div class="gate-form" id="gateAdminForm">
       <div class="gate-pass-wrap">
         <input type="password" id="gateAdminPass" placeholder="Senha de administrador" onkeydown="if(event.key==='Enter')submitAdminLogin()">
-        <button type="button" class="gate-eye" onclick="togglePass('gateAdminPass',this)" title="Mostrar/ocultar senha">👁</button>
+        <button type="button" class="gate-eye" onclick="togglePass('gateAdminPass',this)" title="Mostrar/ocultar senha" aria-label="Mostrar senha"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
       <button class="btn btn-p gate-btn" onclick="submitAdminLogin()">Entrar</button>
     </div>
@@ -321,7 +321,7 @@ body.adm .gate, body.lead .gate{display:none}
       </select>
       <div class="gate-pass-wrap">
         <input type="password" id="gateLeaderPass" placeholder="Senha do ministério" onkeydown="if(event.key==='Enter')submitLeaderLogin()">
-        <button type="button" class="gate-eye" onclick="togglePass('gateLeaderPass',this)" title="Mostrar/ocultar senha">👁</button>
+        <button type="button" class="gate-eye" onclick="togglePass('gateLeaderPass',this)" title="Mostrar/ocultar senha" aria-label="Mostrar senha"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
       <button class="btn btn-p gate-btn" onclick="submitLeaderLogin()">Entrar</button>
     </div>
@@ -926,10 +926,19 @@ window.toggleGateForm=function(which){
     leadForm.classList.toggle('on');
   }
 };
+const EYE_OPEN_SVG='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF_SVG='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
 window.togglePass=function(inputId,btn){
   const input=document.getElementById(inputId);
-  if(input.type==='password'){ input.type='text'; btn.textContent='🙈'; }
-  else { input.type='password'; btn.textContent='👁'; }
+  if(input.type==='password'){
+    input.type='text';
+    btn.innerHTML=EYE_OFF_SVG;
+    btn.setAttribute('aria-label','Ocultar senha');
+  } else {
+    input.type='password';
+    btn.innerHTML=EYE_OPEN_SVG;
+    btn.setAttribute('aria-label','Mostrar senha');
+  }
 };
 function shakeForm(id){
   const el=document.getElementById(id);
