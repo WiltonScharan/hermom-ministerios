@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Igreja Hermom — Controle de Ministérios</title>
+<script>
+// Detecção SÍNCRONA da sessão antes de qualquer renderização
+// Adiciona classe no <html> imediatamente — antes do body, do CSS principal e de qualquer pintura
+(function(){
+  try{
+    var has = localStorage.getItem('hermom_admin')==='1'
+           || localStorage.getItem('hermom_pastor')==='1'
+           || !!localStorage.getItem('hermom_leader_min');
+    document.documentElement.classList.add(has?'has-session':'no-session');
+  }catch(e){ document.documentElement.classList.add('no-session'); }
+})();
+</script>
+<style id="gate-style">
+/* Esconde o gate de cara para quem tem sessão. Aplica antes do CSS principal carregar */
+html.has-session #loginGate{display:none!important}
+html.no-session #loginGate{display:flex}
+</style>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -325,7 +342,7 @@ body.pas .adm-only{display:none!important}
 .btn-pas{background:#5b21b6;color:#fff}
 .btn-pas:hover{background:#4c1d95}
 .gate{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;animation:gateIn .25s ease}
-body.no-session .gate{display:flex}
+html.no-session .gate{display:flex}
 .gate-box{background:var(--white);border-radius:var(--r);padding:44px 40px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center}
 .gate-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--navy);font-weight:700;line-height:1}
 .gate-sub{font-size:.78rem;color:var(--gold);font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
@@ -357,16 +374,13 @@ body.no-session .gate{display:flex}
 </head>
 <body>
 <script>
-// Aplica classe de sessão sincronamente (antes do gate ser renderizado) para evitar flash
+// Aplica classes do body para os modos de UI (admin/lead/pas)
 (function(){
   try{
     if(localStorage.getItem('hermom_admin')==='1') document.body.classList.add('adm');
     else if(localStorage.getItem('hermom_pastor')==='1') document.body.classList.add('pas');
     else if(localStorage.getItem('hermom_leader_min')) document.body.classList.add('lead');
-    else document.body.classList.add('no-session');
-  }catch(e){
-    document.body.classList.add('no-session');
-  }
+  }catch(e){}
 })();
 </script>
 
@@ -1225,7 +1239,8 @@ window.submitAdminLogin=async function(){
   if(pass===ADMIN_PASS){
     localStorage.setItem('hermom_admin','1');
     S.admin=true;
-    document.body.classList.remove('no-session');
+    document.documentElement.classList.remove('no-session');
+    document.documentElement.classList.add('has-session');
     document.body.classList.add('adm');
     toast('Modo administrador ativado','ok');
     const active=document.querySelector('.tab.on')?.id||'';
@@ -1246,7 +1261,8 @@ window.submitAdminLogin=async function(){
       if(pastorPass && pass===pastorPass){
         S.pastor=true;
         localStorage.setItem('hermom_pastor','1');
-        document.body.classList.remove('no-session');
+        document.documentElement.classList.remove('no-session');
+        document.documentElement.classList.add('has-session');
         document.body.classList.add('pas');
         toast('Entrou como Pastor Presidente','ok');
         const active=document.querySelector('.tab.on')?.id||'';
@@ -1278,7 +1294,8 @@ window.submitLeaderLogin=function(){
   }
   S.leaderMin=mk;
   localStorage.setItem('hermom_leader_min',mk);
-  document.body.classList.remove('no-session');
+  document.documentElement.classList.remove('no-session');
+  document.documentElement.classList.add('has-session');
   document.body.classList.add('lead');
   const badge=document.getElementById('leadBadge');
   if(badge) badge.textContent=mv.nome;
