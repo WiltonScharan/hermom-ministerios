@@ -140,6 +140,7 @@ body.adm .admbar{display:none}
 .li2{display:flex;align-items:center;gap:5px}
 .ld{width:11px;height:11px;border-radius:50%}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;padding:16px}
+#ovConfirm{z-index:1100}
 .ov.on{opacity:1;pointer-events:all}
 .mod{background:var(--white);border-radius:var(--r);padding:26px;width:100%;max-width:480px;box-shadow:0 16px 48px rgba(0,0,0,.22);transform:scale(.95);transition:transform .2s;max-height:90vh;overflow-y:auto}
 .mod.lg{max-width:720px}
@@ -279,6 +280,19 @@ body:not(.adm) .rc-row{grid-template-columns:minmax(180px,1fr) auto minmax(160px
 .ata-preview{font-size:.82rem;color:var(--gray);line-height:1.4;max-height:48px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:pre-wrap}
 .lista-stats{font-size:.74rem;color:var(--gray);display:flex;gap:14px}
 .empty-state{padding:32px 20px;text-align:center;color:var(--gray);font-size:.88rem;background:var(--cream);border-radius:var(--rs);border:1px dashed var(--border)}
+.lt-row{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:8px 14px;padding:12px 14px;border-bottom:1px solid var(--border);align-items:center}
+.lt-row:last-child{border-bottom:none}
+.lt-name{grid-column:1;grid-row:1;display:flex;align-items:center;gap:10px;min-width:0}
+.lt-name>div{min-width:0}
+.lt-name .rc-nm{overflow:hidden;text-overflow:ellipsis}
+.lt-btns{grid-column:2;grid-row:1;display:flex;gap:6px}
+.lt-just{grid-column:1/-1;grid-row:2;border:1px solid var(--border);border-radius:6px;padding:7px 11px;font-family:inherit;font-size:.84rem;outline:none;color:var(--navy);background:#fff}
+.lt-just:focus{border-color:var(--amber)}
+@media(max-width:520px){
+  .lt-row{grid-template-columns:1fr;grid-template-rows:auto auto auto}
+  .lt-btns{grid-column:1;grid-row:2}
+  .lt-just{grid-row:3}
+}
 textarea{font-family:inherit;border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:.92rem;outline:none;color:var(--navy);background:var(--white);width:100%;resize:vertical;line-height:1.5}
 textarea:focus{border-color:var(--navy2)}
 body:not(.adm) .adm-only{display:none!important}
@@ -760,7 +774,23 @@ body.adm .gate, body.lead .gate, body.pas .gate{display:none}
     <div class="mact">
       <button class="btn btn-d left" onclick="deleteLista()">Excluir lista</button>
       <button class="btn btn-s" onclick="closeOv('ovListaDetail')">Fechar</button>
-      <button class="btn btn-p" onclick="renameLista()">Renomear</button>
+      <button class="btn btn-p" onclick="openEditLista()">Editar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar Lista (titulo e data) -->
+<div class="ov" id="ovEditLista">
+  <div class="mod">
+    <h3>Editar Lista de Presença</h3>
+    <p class="sub">Altere o título ou a data desta lista.</p>
+    <div class="fld row">
+      <div><label>Título</label><input id="elTitulo"></div>
+      <div><label>Data</label><input type="date" id="elData"></div>
+    </div>
+    <div class="mact">
+      <button class="btn btn-s" onclick="closeOv('ovEditLista')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveEditLista()">Salvar</button>
     </div>
   </div>
 </div>
@@ -1365,6 +1395,7 @@ function setupListeners(m){
   S.listeners.private=onValue(ref(db,'hermom/private'),(snap)=>{
     S.private=snap.val()||{};
     if(document.getElementById('tab-anotacoes').classList.contains('on')) renderAnotacoes();
+    if(document.getElementById('ovListaDetail').classList.contains('on') && S.editLista) renderListaRollCall();
   });
 }
 
@@ -2899,7 +2930,7 @@ window.renderAnotacoes=function(){
     </div>
     <div class="anot-section">
       <div class="anot-section-head">
-        <h3>Listas de Presença Paralelas <small>${listasArr.length}</small></h3>
+        <h3>Listas de Presença <small>${listasArr.length}</small></h3>
         ${novaLista}
       </div>
       ${listasHtml}
@@ -3038,25 +3069,26 @@ function renderListaRollCall(){
     const {status,just}=decodeStatus(v);
     const rl=m.role==='lider'?'Líder':m.role==='colider'?'Co-líder':'Membro';
     const roleColor=m.role==='lider'?'var(--gold)':m.role==='colider'?'var(--navy2)':'var(--gray)';
+    const isAusenteOuJust=status==='ausente'||status==='justificado';
     if(canEdit){
-      rows+=`<div class="rc-row">
-        <div></div>
-        <div style="display:flex;align-items:center;gap:10px">
+      const justInput=isAusenteOuJust?`<input type="text" class="lt-just" placeholder="Motivo da ausência (opcional)..." value="${esc(just||'')}" onchange="setListaJust('${esc(pk)}',this.value)">`:'';
+      rows+=`<div class="lt-row">
+        <div class="lt-name">
           ${avatarHtml(m.nome,32)}
           <div>
             <div class="rc-nm">${esc(m.nome)}</div>
             <div class="rc-rt" style="color:${roleColor}">${rl}</div>
           </div>
         </div>
-        <div class="rc-btns">
+        <div class="lt-btns">
           <button class="rc-btn p${status==='presente'?' on':''}" onclick="setListaStatus('${esc(pk)}','p')">Presente</button>
-          <button class="rc-btn a${status==='ausente'?' on':''}" onclick="setListaStatus('${esc(pk)}','a')">Ausente</button>
+          <button class="rc-btn a${status==='ausente'||status==='justificado'?' on':''}" onclick="setListaStatus('${esc(pk)}','a')">Ausente</button>
         </div>
-        <input type="text" class="rc-just" placeholder="Motivo (justificativa)..." value="${esc(just||'')}" onchange="setListaJust('${esc(pk)}',this.value)">
+        ${justInput}
       </div>`;
     } else {
-      const cellTxt=status==='presente'?'<span style="color:var(--green)">✓ Presente</span>':status==='ausente'?'<span style="color:var(--red)">✗ Ausente</span>':status==='justificado'?`<span style="color:var(--amber)">${esc(just||'Justificado')}</span>`:'<span style="color:var(--gray)">—</span>';
-      rows+=`<div class="rc-row" style="grid-template-columns:1fr auto"><div style="display:flex;align-items:center;gap:10px">${avatarHtml(m.nome,32)}<div><div class="rc-nm">${esc(m.nome)}</div><div class="rc-rt" style="color:${roleColor}">${rl}</div></div></div><div>${cellTxt}</div></div>`;
+      const cellTxt=status==='presente'?'<span style="color:var(--green);font-weight:600">✓ Presente</span>':status==='ausente'?'<span style="color:var(--red);font-weight:600">✗ Ausente</span>':status==='justificado'?`<span style="color:var(--amber);font-weight:600">${esc(just||'Justificado')}</span>`:'<span style="color:var(--gray)">— Não marcado</span>';
+      rows+=`<div class="lt-row"><div class="lt-name">${avatarHtml(m.nome,32)}<div><div class="rc-nm">${esc(m.nome)}</div><div class="rc-rt" style="color:${roleColor}">${rl}</div></div></div><div class="lt-btns">${cellTxt}</div></div>`;
     }
   });
   document.getElementById('ldContent').innerHTML=`
@@ -3101,18 +3133,30 @@ window.deleteLista=function(){
     }catch(e){ toast('Erro: '+e.message,'er'); }
   });
 };
-window.renameLista=async function(){
+window.openEditLista=function(){
   if(!S.editLista||!S.db) return;
   const {minKey,id}=S.editLista;
+  if(!canEditPrivate(minKey)){ toast('Sem permissão','er'); return; }
   const cur=(((S.private||{})[minKey]||{}).listas||{})[id]||{};
-  const novoTitulo=prompt('Novo título da lista:',cur.titulo||'');
-  if(novoTitulo===null) return;
-  if(!novoTitulo.trim()) return;
+  document.getElementById('elTitulo').value=cur.titulo||'';
+  document.getElementById('elData').value=cur.data||'';
+  showOv('ovEditLista');
+};
+
+window.saveEditLista=async function(){
+  if(!S.editLista||!S.db) return;
+  const {minKey,id}=S.editLista;
+  const titulo=document.getElementById('elTitulo').value.trim();
+  const data=document.getElementById('elData').value;
+  if(!titulo){ toast('Informe o título','er'); return; }
+  if(!data){ toast('Informe a data','er'); return; }
   try{
-    const {ref,set}=fbMods;
-    await set(ref(S.db,`hermom/private/${minKey}/listas/${id}/titulo`),novoTitulo.trim());
-    document.getElementById('ldTitle').textContent=novoTitulo.trim();
-    toast('Título atualizado','ok');
+    const {ref,update}=fbMods;
+    await update(ref(S.db,`hermom/private/${minKey}/listas/${id}`),{titulo,data});
+    document.getElementById('ldTitle').textContent=titulo;
+    document.getElementById('ldMeta').textContent=`${S.mins[minKey]?.nome||minKey} · ${fmtDateBR(data)}`;
+    toast('Lista atualizada','ok');
+    closeOv('ovEditLista');
   }catch(e){ toast('Erro: '+e.message,'er'); }
 };
 
