@@ -324,7 +324,8 @@ body.pas .adm-only{display:none!important}
 .pas-badge{background:rgba(167,139,250,.25);color:#c4b5fd;padding:4px 10px;border-radius:12px;font-size:.7rem;font-weight:700;letter-spacing:.04em}
 .btn-pas{background:#5b21b6;color:#fff}
 .btn-pas:hover{background:#4c1d95}
-.gate{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;animation:gateIn .25s ease}
+.gate{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;animation:gateIn .25s ease}
+body.no-session .gate{display:flex}
 .gate-box{background:var(--white);border-radius:var(--r);padding:44px 40px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center}
 .gate-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--navy);font-weight:700;line-height:1}
 .gate-sub{font-size:.78rem;color:var(--gold);font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
@@ -344,7 +345,6 @@ body.pas .adm-only{display:none!important}
 @keyframes shake{0%,100%{transform:translateX(0)}15%,45%,75%{transform:translateX(-8px)}30%,60%,90%{transform:translateX(8px)}}
 @keyframes gateFormIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes gateIn{from{opacity:0}to{opacity:1}}
-body.adm .gate, body.lead .gate, body.pas .gate{display:none}
 @media(max-width:620px){
   .hdr{padding:0 14px;gap:10px;height:auto;padding-top:8px;padding-bottom:8px}
   .main{padding:14px}
@@ -363,7 +363,10 @@ body.adm .gate, body.lead .gate, body.pas .gate{display:none}
     if(localStorage.getItem('hermom_admin')==='1') document.body.classList.add('adm');
     else if(localStorage.getItem('hermom_pastor')==='1') document.body.classList.add('pas');
     else if(localStorage.getItem('hermom_leader_min')) document.body.classList.add('lead');
-  }catch(e){}
+    else document.body.classList.add('no-session');
+  }catch(e){
+    document.body.classList.add('no-session');
+  }
 })();
 </script>
 
@@ -760,8 +763,8 @@ body.adm .gate, body.lead .gate, body.pas .gate{display:none}
 <div class="ov" id="ovReun">
   <div class="mod lg">
     <h3 id="reunTitle">Nova Reunião</h3>
-    <p class="sub">Registre a ata e marque a presença numa única reunião.</p>
-    <div class="fld row">
+    <p class="sub" id="reunSub">Registre a ata e marque a presença numa única reunião.</p>
+    <div class="fld row" id="reunMeta">
       <div><label>Título</label><input id="reunTitulo" placeholder="Ex: Ensaio sábado, Reunião de planejamento..."></div>
       <div><label>Data</label><input type="date" id="reunData"></div>
     </div>
@@ -1210,6 +1213,7 @@ window.submitAdminLogin=async function(){
   if(pass===ADMIN_PASS){
     localStorage.setItem('hermom_admin','1');
     S.admin=true;
+    document.body.classList.remove('no-session');
     document.body.classList.add('adm');
     toast('Modo administrador ativado','ok');
     const active=document.querySelector('.tab.on')?.id||'';
@@ -1230,6 +1234,7 @@ window.submitAdminLogin=async function(){
       if(pastorPass && pass===pastorPass){
         S.pastor=true;
         localStorage.setItem('hermom_pastor','1');
+        document.body.classList.remove('no-session');
         document.body.classList.add('pas');
         toast('Entrou como Pastor Presidente','ok');
         const active=document.querySelector('.tab.on')?.id||'';
@@ -1261,6 +1266,7 @@ window.submitLeaderLogin=function(){
   }
   S.leaderMin=mk;
   localStorage.setItem('hermom_leader_min',mk);
+  document.body.classList.remove('no-session');
   document.body.classList.add('lead');
   const badge=document.getElementById('leadBadge');
   if(badge) badge.textContent=mv.nome;
@@ -3050,6 +3056,9 @@ window.switchReunTab=function(tab){
   document.querySelectorAll('.reun-tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
   document.getElementById('reunTabContent').style.display=tab==='content'?'block':'none';
   document.getElementById('reunTabLista').style.display=tab==='lista'?'block':'none';
+  // Título e data só aparecem na aba Conteúdo
+  document.getElementById('reunMeta').style.display=tab==='content'?'grid':'none';
+  document.getElementById('reunSub').style.display=tab==='content'?'block':'none';
   if(tab==='lista'){
     if(!S.editReun?.id){
       document.getElementById('reunRollCall').innerHTML='<div class="empty-state">Salve a reunião primeiro (com título e data) para marcar a presença.</div>';
