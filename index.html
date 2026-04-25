@@ -288,6 +288,12 @@ body:not(.adm) .rc-row{grid-template-columns:minmax(180px,1fr) auto minmax(160px
 .lt-btns{grid-column:2;grid-row:1;display:flex;gap:6px}
 .lt-just{grid-column:1/-1;grid-row:2;border:1px solid var(--border);border-radius:6px;padding:7px 11px;font-family:inherit;font-size:.84rem;outline:none;color:var(--navy);background:#fff}
 .lt-just:focus{border-color:var(--amber)}
+.ro-status{font-size:.85rem;font-weight:600;white-space:nowrap}
+.ro-pres{color:var(--green)}
+.ro-aus{color:var(--red)}
+.ro-just{color:var(--amber)}
+.ro-nm{color:var(--gray);font-weight:400}
+.ro-motivo{font-size:.78rem;color:var(--gray);font-style:italic;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:520px){
   .lt-row{grid-template-columns:1fr;grid-template-rows:auto auto auto}
   .lt-btns{grid-column:1;grid-row:2}
@@ -775,6 +781,7 @@ body.adm .gate, body.lead .gate, body.pas .gate{display:none}
       <button class="btn btn-d left" onclick="deleteLista()">Excluir lista</button>
       <button class="btn btn-s" onclick="closeOv('ovListaDetail')">Fechar</button>
       <button class="btn btn-p" onclick="openEditLista()">Editar</button>
+      <button class="btn btn-g" onclick="salvarLista()">Salvar</button>
     </div>
   </div>
 </div>
@@ -3043,7 +3050,7 @@ window.openLista=function(minKey,id){
   document.getElementById('ldMeta').textContent=`${S.mins[minKey]?.nome||minKey} · ${fmtDateBR(lista.data)}`;
   // Esconde botões de admin/líder para pastor
   const canEdit=canEditPrivate(minKey);
-  document.querySelectorAll('#ovListaDetail .mact .btn-d, #ovListaDetail .mact .btn-p').forEach(b=>b.style.display=canEdit?'inline-block':'none');
+  document.querySelectorAll('#ovListaDetail .mact .btn-d, #ovListaDetail .mact .btn-p, #ovListaDetail .mact .btn-g').forEach(b=>b.style.display=canEdit?'inline-block':'none');
   renderListaRollCall();
   showOv('ovListaDetail');
 };
@@ -3087,8 +3094,17 @@ function renderListaRollCall(){
         ${justInput}
       </div>`;
     } else {
-      const cellTxt=status==='presente'?'<span style="color:var(--green);font-weight:600">✓ Presente</span>':status==='ausente'?'<span style="color:var(--red);font-weight:600">✗ Ausente</span>':status==='justificado'?`<span style="color:var(--amber);font-weight:600">${esc(just||'Justificado')}</span>`:'<span style="color:var(--gray)">— Não marcado</span>';
-      rows+=`<div class="lt-row"><div class="lt-name">${avatarHtml(m.nome,32)}<div><div class="rc-nm">${esc(m.nome)}</div><div class="rc-rt" style="color:${roleColor}">${rl}</div></div></div><div class="lt-btns">${cellTxt}</div></div>`;
+      let statusBlock='';
+      if(status==='presente'){
+        statusBlock='<div class="ro-status ro-pres">✓ Presente</div>';
+      } else if(status==='ausente'){
+        statusBlock='<div class="ro-status ro-aus">✗ Ausente</div>';
+      } else if(status==='justificado'){
+        statusBlock=`<div class="ro-status ro-just">⚠ Ausência justificada</div><div class="ro-motivo">"${esc(just||'sem motivo')}"</div>`;
+      } else {
+        statusBlock='<div class="ro-status ro-nm">— Não marcado</div>';
+      }
+      rows+=`<div class="lt-row"><div class="lt-name">${avatarHtml(m.nome,32)}<div><div class="rc-nm">${esc(m.nome)}</div><div class="rc-rt" style="color:${roleColor}">${rl}</div></div></div><div class="lt-btns" style="flex-direction:column;align-items:flex-end;gap:2px">${statusBlock}</div></div>`;
     }
   });
   document.getElementById('ldContent').innerHTML=`
@@ -3133,6 +3149,17 @@ window.deleteLista=function(){
     }catch(e){ toast('Erro: '+e.message,'er'); }
   });
 };
+window.salvarLista=function(){
+  // Auto-save ja acontece nos cliques. Esse botao garante que inputs com foco percam o foco (disparando onchange) e fecha a modal.
+  if(document.activeElement && typeof document.activeElement.blur==='function'){
+    document.activeElement.blur();
+  }
+  setTimeout(()=>{
+    closeOv('ovListaDetail');
+    toast('Lista salva','ok');
+  },80);
+};
+
 window.openEditLista=function(){
   if(!S.editLista||!S.db) return;
   const {minKey,id}=S.editLista;
