@@ -344,20 +344,21 @@ body.pas .adm-only{display:none!important}
 .pas-badge{background:rgba(167,139,250,.25);color:#c4b5fd;padding:4px 10px;border-radius:12px;font-size:.7rem;font-weight:700;letter-spacing:.04em}
 .btn-pas{background:#5b21b6;color:#fff}
 .btn-pas:hover{background:#4c1d95}
-.gate{position:fixed;inset:0;background:#000;z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;animation:gateIn .25s ease;overflow:hidden}
-.gate-bg-blur{position:absolute;inset:-30px;background:url('entrada2.jpeg?v=1') center center / cover no-repeat;filter:blur(28px) brightness(.55);transform:scale(1.08);z-index:0;pointer-events:none}
-.gate-bg-sharp{position:absolute;inset:0;background:url('entrada2.jpeg?v=1') center center / contain no-repeat;z-index:1;pointer-events:none}
-.gate::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(10,10,12,.42) 0%,rgba(20,12,8,.48) 100%);pointer-events:none;z-index:2}
+.gate{position:fixed;inset:0;background:radial-gradient(ellipse at center,#1a0f08 0%,#0d0a08 70%,#000 100%);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;animation:gateIn .25s ease;overflow:hidden}
+.gate-bubbles{position:absolute;inset:0;pointer-events:none;z-index:1}
+.bubble{position:absolute;display:flex;align-items:center;justify-content:center;width:88px;height:88px;border-radius:50%;background:rgba(255,107,44,.1);border:1.5px solid rgba(255,107,44,.45);color:#ffc6a4;font-family:'Playfair Display',serif;font-style:italic;font-size:.98rem;font-weight:600;letter-spacing:.03em;opacity:0;transform:scale(.3);animation:bubblePulse 7s ease-in-out infinite;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 4px 24px rgba(255,107,44,.18)}
+.bubble-cross{font-size:2.4rem;font-style:normal;color:#fff;font-weight:300;line-height:1;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.35);box-shadow:0 4px 24px rgba(255,255,255,.12)}
+@keyframes bubblePulse{0%,100%{opacity:0;transform:scale(.3)}15%{opacity:1;transform:scale(1)}50%{opacity:.95;transform:scale(1.06)}85%{opacity:0;transform:scale(.85)}}
 html.no-session .gate{display:flex}
-.gate-box{position:relative;z-index:3;background:rgba(15,17,20,.06);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);border:1px solid rgba(255,107,44,.5);border-radius:var(--r);padding:36px 40px 44px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);text-align:center;border-top:4px solid #ff6b2c}
+.gate-box{position:relative;z-index:3;background:rgba(15,17,20,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,107,44,.35);border-radius:var(--r);padding:36px 40px 44px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.7);text-align:center;border-top:4px solid #ff6b2c}
 .gate-logo{width:84px;height:84px;border-radius:50%;overflow:hidden;margin:0 auto 16px;background:#ff6b2c;box-shadow:0 6px 20px rgba(255,107,44,.35);border:3px solid rgba(255,255,255,.85)}
 .gate-logo img{width:100%;height:100%;object-fit:cover;display:block;transform:scale(1.18);transform-origin:center}
-.gate-title{font-family:'Playfair Display',serif;font-size:2rem;color:#fff;font-weight:700;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.85),0 1px 3px rgba(0,0,0,.9)}
-.gate-tagline{font-family:'Playfair Display',serif;font-size:1rem;color:#ff8a4c;font-style:italic;font-weight:500;margin-top:8px;letter-spacing:.04em;text-shadow:0 1px 6px rgba(0,0,0,.8)}
-.gate-sub{font-size:.72rem;color:rgba(255,255,255,.85);font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:14px;padding-top:10px;border-top:1px solid rgba(255,255,255,.25);text-shadow:0 1px 4px rgba(0,0,0,.8)}
-.gate-text{color:rgba(255,255,255,.9);margin:26px 0 22px;font-size:.92rem;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+.gate-title{font-family:'Playfair Display',serif;font-size:2rem;color:#fff;font-weight:700;line-height:1}
+.gate-tagline{font-family:'Playfair Display',serif;font-size:1rem;color:#ff8a4c;font-style:italic;font-weight:500;margin-top:8px;letter-spacing:.04em}
+.gate-sub{font-size:.72rem;color:rgba(255,255,255,.7);font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:14px;padding-top:10px;border-top:1px solid rgba(255,255,255,.18)}
+.gate-text{color:rgba(255,255,255,.78);margin:26px 0 22px;font-size:.92rem}
 .gate-btn{width:100%;margin-bottom:10px;padding:13px;font-size:.95rem}
-.gate-foot{font-size:.72rem;color:rgba(255,255,255,.75);margin-top:18px;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+.gate-foot{font-size:.72rem;color:rgba(255,255,255,.55);margin-top:18px}
 .gate-form{display:none;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);padding:14px;border-radius:var(--rs);margin-bottom:10px;animation:gateFormIn .22s ease}
 .gate-form.on{display:block}
 .gate-pass-wrap{position:relative;margin-bottom:10px}
@@ -397,8 +398,16 @@ html.no-session .gate{display:flex}
 
 <!-- LOGIN GATE: bloqueia o app até que haja sessão (admin ou líder) -->
 <div id="loginGate" class="gate">
-  <div class="gate-bg-blur"></div>
-  <div class="gate-bg-sharp"></div>
+  <div class="gate-bubbles">
+    <span class="bubble" style="top:8%;left:6%;animation-delay:0s">Amar</span>
+    <span class="bubble" style="top:18%;right:8%;animation-delay:1.1s">Servir</span>
+    <span class="bubble bubble-cross" style="top:6%;left:42%;animation-delay:2.2s">✝</span>
+    <span class="bubble" style="top:42%;left:4%;animation-delay:3.3s">Cuidar</span>
+    <span class="bubble bubble-cross" style="top:40%;right:5%;animation-delay:4.4s">✝</span>
+    <span class="bubble" style="bottom:18%;left:9%;animation-delay:5.5s">Amar</span>
+    <span class="bubble" style="bottom:10%;right:11%;animation-delay:0.5s">Servir</span>
+    <span class="bubble" style="bottom:6%;left:38%;animation-delay:2.8s">Cuidar</span>
+  </div>
   <div class="gate-box">
     <div class="gate-logo"><img src="logo.png?v=2" alt="Logo Igreja Hermom"></div>
     <div class="gate-title">Igreja Hermom</div>
