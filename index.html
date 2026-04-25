@@ -344,15 +344,17 @@ body.pas .adm-only{display:none!important}
 .pas-badge{background:rgba(167,139,250,.25);color:#c4b5fd;padding:4px 10px;border-radius:12px;font-size:.7rem;font-weight:700;letter-spacing:.04em}
 .btn-pas{background:#5b21b6;color:#fff}
 .btn-pas:hover{background:#4c1d95}
-.gate{position:fixed;inset:0;background:radial-gradient(ellipse at center,#1a0f08 0%,#0d0a08 70%,#000 100%);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;animation:gateIn .25s ease;overflow:hidden}
+.gate{position:fixed;inset:0;background:radial-gradient(ellipse at center,#3d2e20 0%,#241a14 55%,#15110e 100%);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;animation:gateIn .25s ease;overflow:hidden}
 .gate-bubbles{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:hidden}
-.bubble{position:absolute;display:block;opacity:0;animation:bubbleFloat 12s cubic-bezier(.4,0,.2,1) infinite;transform-origin:center;will-change:transform,opacity}
-.bubble svg{width:100%;height:auto;display:block;filter:drop-shadow(2px 3px 0 rgba(0,0,0,.35))}
-.bub-sm{width:95px}
-.bub-md{width:125px}
-.bub-lg{width:155px}
-.bub-xl{width:180px}
-@keyframes bubbleFloat{0%,100%{opacity:0;transform:scale(.55) translateY(22px) rotate(-3deg)}12%{opacity:1;transform:scale(1) translateY(0) rotate(0)}50%{opacity:1;transform:scale(1.05) translateY(-16px) rotate(2deg)}88%{opacity:0;transform:scale(.9) translateY(-24px) rotate(-2deg)}}
+.bubble{position:absolute;display:block;opacity:0;animation:bubbleFloat 8.5s cubic-bezier(.34,.1,.3,1) forwards;transform-origin:center;will-change:transform,opacity;--drift-x:0px}
+.bubble svg{width:100%;height:auto;display:block;filter:drop-shadow(2px 3px 0 rgba(0,0,0,.4))}
+@keyframes bubbleFloat{
+  0%{opacity:0;transform:scale(.4) translate(0,28px) rotate(-5deg)}
+  16%{opacity:1;transform:scale(1) translate(0,0) rotate(0)}
+  55%{opacity:1;transform:scale(1.04) translate(calc(var(--drift-x)*.4),-14px) rotate(2deg)}
+  88%{opacity:.9;transform:scale(.97) translate(var(--drift-x),-26px) rotate(-1deg)}
+  100%{opacity:0;transform:scale(.82) translate(var(--drift-x),-36px) rotate(0)}
+}
 html.no-session .gate{display:flex}
 .gate-box{position:relative;z-index:3;background:rgba(15,17,20,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,107,44,.35);border-radius:var(--r);padding:36px 40px 44px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.7);text-align:center;border-top:4px solid #ff6b2c}
 .gate-logo{width:84px;height:84px;border-radius:50%;overflow:hidden;margin:0 auto 16px;background:#ff6b2c;box-shadow:0 6px 20px rgba(255,107,44,.35);border:3px solid rgba(255,255,255,.85)}
@@ -398,37 +400,72 @@ html.no-session .gate{display:flex}
     else if(localStorage.getItem('hermom_leader_min')) document.body.classList.add('lead');
   }catch(e){}
 })();
+
+// Spawner aleatorio de baloes na tela de login
+(function(){
+  const SPEECH_L='M 100 8 C 154 8 196 30 196 55 C 196 80 154 102 100 102 C 92 102 84 101 76 100 C 68 113 50 124 30 132 C 42 122 50 113 55 98 C 28 90 4 75 4 55 C 4 30 46 8 100 8 Z';
+  const SPEECH_R='M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z';
+  const THOUGHT='M 35 70 C 18 72 14 50 32 42 C 28 22 56 18 68 30 C 75 12 108 12 118 28 C 134 18 162 26 158 46 C 178 48 182 70 165 78 C 182 88 178 110 156 110 C 158 128 128 132 116 118 C 108 132 78 132 68 116 C 48 122 26 108 36 92 C 18 88 18 68 35 70 Z';
+  const WORDS=['Amar','Servir','Cuidar'];
+  const COLORS=['#fff','#fff5e0','#ffe8c2','#ffd4b8','#ffb088'];
+  const SIZES=[55,62,70,78,88];
+  const ZONES=[
+    {top:[2,15],x:[2,38]},{top:[2,15],x:[55,95]},
+    {top:[20,75],x:[1,28]},{top:[20,75],x:[68,95]},
+    {bottom:[2,15],x:[2,40]},{bottom:[2,15],x:[55,95]}
+  ];
+  function rand(a){return a[0]+Math.random()*(a[1]-a[0]);}
+  function pick(a){return a[Math.floor(Math.random()*a.length)];}
+  function speech(t,c,r){
+    const p=r?SPEECH_R:SPEECH_L,fs=t.length>5?30:34;
+    return '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="'+p+'" fill="'+c+'" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="'+fs+'" fill="#0a0a0a" font-weight="700">'+t+'</text></svg>';
+  }
+  function thought(){
+    return '<svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg"><path d="'+THOUGHT+'" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><circle cx="78" cy="130" r="6.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.8"/><circle cx="62" cy="146" r="4.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.5"/><text x="100" y="88" text-anchor="middle" font-size="55" fill="#0a0a0a" font-weight="bold">✝</text></svg>';
+  }
+  let busyZones=[];
+  function spawn(){
+    const c=document.querySelector('.gate-bubbles');
+    if(!c) return;
+    if(document.documentElement.classList.contains('has-session')) return;
+    // escolhe zona livre (evita aglomeracao no mesmo lugar)
+    const free=ZONES.filter(z=>!busyZones.includes(z));
+    const zone=free.length?pick(free):pick(ZONES);
+    busyZones.push(zone);
+    setTimeout(()=>{busyZones=busyZones.filter(z=>z!==zone);},2500);
+    const isCross=Math.random()<0.22;
+    const size=pick(SIZES);
+    const isRight=Math.random()<0.5;
+    const drift=(Math.random()*50-25);
+    const b=document.createElement('span');
+    b.className='bubble';
+    let s='width:'+size+'px;left:'+rand(zone.x)+'%;';
+    if(zone.top) s+='top:'+rand(zone.top)+'%;';
+    else s+='bottom:'+rand(zone.bottom)+'%;';
+    s+='--drift-x:'+drift+'px;';
+    b.style.cssText=s;
+    b.innerHTML=isCross?thought():speech(pick(WORDS),pick(COLORS),isRight);
+    c.appendChild(b);
+    setTimeout(()=>{b.remove();},9000);
+  }
+  let iv;
+  function start(){
+    if(iv) return;
+    for(let i=0;i<10;i++) setTimeout(spawn,i*280);
+    iv=setInterval(()=>{
+      if(document.documentElement.classList.contains('has-session')){clearInterval(iv);iv=null;document.querySelectorAll('.bubble').forEach(b=>b.remove());return;}
+      spawn();
+    },450);
+  }
+  if(document.readyState!=='loading') start();
+  else document.addEventListener('DOMContentLoaded',start);
+  window.__startBubbles=start;
+})();
 </script>
 
 <!-- LOGIN GATE: bloqueia o app até que haja sessão (admin ou líder) -->
 <div id="loginGate" class="gate">
   <div class="gate-bubbles">
-    <!-- TOPO (faixa horizontal completa, longe verticalmente do card) -->
-    <span class="bubble bub-md" style="top:3%;left:3%;animation-delay:-11s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 154 8 196 30 196 55 C 196 80 154 102 100 102 C 92 102 84 101 76 100 C 68 113 50 124 30 132 C 42 122 50 113 55 98 C 28 90 4 75 4 55 C 4 30 46 8 100 8 Z" fill="#fff" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="34" fill="#0a0a0a" font-weight="700">Amar</text></svg></span>
-    <span class="bubble bub-sm" style="top:11%;left:18%;animation-delay:-8s"><svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg"><path d="M 35 70 C 18 72 14 50 32 42 C 28 22 56 18 68 30 C 75 12 108 12 118 28 C 134 18 162 26 158 46 C 178 48 182 70 165 78 C 182 88 178 110 156 110 C 158 128 128 132 116 118 C 108 132 78 132 68 116 C 48 122 26 108 36 92 C 18 88 18 68 35 70 Z" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><circle cx="78" cy="130" r="6.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.8"/><circle cx="62" cy="146" r="4.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.5"/><text x="100" y="88" text-anchor="middle" font-size="55" fill="#0a0a0a" font-weight="bold">✝</text></svg></span>
-    <span class="bubble bub-sm" style="top:5%;left:35%;animation-delay:-5s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z" fill="#ffe8c2" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="32" fill="#0a0a0a" font-weight="700">Servir</text></svg></span>
-    <span class="bubble bub-md" style="top:13%;right:34%;animation-delay:-2s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 154 8 196 30 196 55 C 196 80 154 102 100 102 C 92 102 84 101 76 100 C 68 113 50 124 30 132 C 42 122 50 113 55 98 C 28 90 4 75 4 55 C 4 30 46 8 100 8 Z" fill="#ffd4b8" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="30" fill="#0a0a0a" font-weight="700">Cuidar</text></svg></span>
-    <span class="bubble bub-sm" style="top:4%;right:18%;animation-delay:0s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z" fill="#fff" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="34" fill="#0a0a0a" font-weight="700">Amar</text></svg></span>
-    <span class="bubble bub-md" style="top:11%;right:3%;animation-delay:-9s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z" fill="#ffb088" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="32" fill="#0a0a0a" font-weight="700">Servir</text></svg></span>
-    <!-- LATERAL ESQUERDA (entre borda e card) -->
-    <span class="bubble bub-md" style="top:28%;left:2%;animation-delay:-7s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 154 8 196 30 196 55 C 196 80 154 102 100 102 C 92 102 84 101 76 100 C 68 113 50 124 30 132 C 42 122 50 113 55 98 C 28 90 4 75 4 55 C 4 30 46 8 100 8 Z" fill="#fff5e0" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="32" fill="#0a0a0a" font-weight="700">Servir</text></svg></span>
-    <span class="bubble bub-sm" style="top:34%;left:21%;animation-delay:-4s"><svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg"><path d="M 35 70 C 18 72 14 50 32 42 C 28 22 56 18 68 30 C 75 12 108 12 118 28 C 134 18 162 26 158 46 C 178 48 182 70 165 78 C 182 88 178 110 156 110 C 158 128 128 132 116 118 C 108 132 78 132 68 116 C 48 122 26 108 36 92 C 18 88 18 68 35 70 Z" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><circle cx="78" cy="130" r="6.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.8"/><circle cx="62" cy="146" r="4.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.5"/><text x="100" y="88" text-anchor="middle" font-size="55" fill="#0a0a0a" font-weight="bold">✝</text></svg></span>
-    <span class="bubble bub-sm" style="top:50%;left:3%;animation-delay:-1s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 154 8 196 30 196 55 C 196 80 154 102 100 102 C 92 102 84 101 76 100 C 68 113 50 124 30 132 C 42 122 50 113 55 98 C 28 90 4 75 4 55 C 4 30 46 8 100 8 Z" fill="#ffb088" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="34" fill="#0a0a0a" font-weight="700">Amar</text></svg></span>
-    <span class="bubble bub-md" style="top:55%;left:21%;animation-delay:-10s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 154 8 196 30 196 55 C 196 80 154 102 100 102 C 92 102 84 101 76 100 C 68 113 50 124 30 132 C 42 122 50 113 55 98 C 28 90 4 75 4 55 C 4 30 46 8 100 8 Z" fill="#fff" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="30" fill="#0a0a0a" font-weight="700">Cuidar</text></svg></span>
-    <span class="bubble bub-sm" style="top:70%;left:4%;animation-delay:-6s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 154 8 196 30 196 55 C 196 80 154 102 100 102 C 92 102 84 101 76 100 C 68 113 50 124 30 132 C 42 122 50 113 55 98 C 28 90 4 75 4 55 C 4 30 46 8 100 8 Z" fill="#ffe8c2" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="32" fill="#0a0a0a" font-weight="700">Servir</text></svg></span>
-    <!-- LATERAL DIREITA (entre card e borda) -->
-    <span class="bubble bub-md" style="top:27%;right:21%;animation-delay:-3s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z" fill="#fff" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="34" fill="#0a0a0a" font-weight="700">Amar</text></svg></span>
-    <span class="bubble bub-sm" style="top:33%;right:3%;animation-delay:-8.5s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z" fill="#ffd4b8" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="30" fill="#0a0a0a" font-weight="700">Cuidar</text></svg></span>
-    <span class="bubble bub-sm" style="top:52%;right:22%;animation-delay:-5.5s"><svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg"><path d="M 35 70 C 18 72 14 50 32 42 C 28 22 56 18 68 30 C 75 12 108 12 118 28 C 134 18 162 26 158 46 C 178 48 182 70 165 78 C 182 88 178 110 156 110 C 158 128 128 132 116 118 C 108 132 78 132 68 116 C 48 122 26 108 36 92 C 18 88 18 68 35 70 Z" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><circle cx="78" cy="130" r="6.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.8"/><circle cx="62" cy="146" r="4.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.5"/><text x="100" y="88" text-anchor="middle" font-size="55" fill="#0a0a0a" font-weight="bold">✝</text></svg></span>
-    <span class="bubble bub-md" style="top:48%;right:3%;animation-delay:1s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z" fill="#fff5e0" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="32" fill="#0a0a0a" font-weight="700">Servir</text></svg></span>
-    <span class="bubble bub-sm" style="top:70%;right:5%;animation-delay:-2.5s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z" fill="#ffb088" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="30" fill="#0a0a0a" font-weight="700">Cuidar</text></svg></span>
-    <!-- RODAPE (faixa horizontal completa) -->
-    <span class="bubble bub-md" style="bottom:18%;left:3%;animation-delay:-7.5s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 154 8 196 30 196 55 C 196 80 154 102 100 102 C 92 102 84 101 76 100 C 68 113 50 124 30 132 C 42 122 50 113 55 98 C 28 90 4 75 4 55 C 4 30 46 8 100 8 Z" fill="#ffd4b8" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="34" fill="#0a0a0a" font-weight="700">Amar</text></svg></span>
-    <span class="bubble bub-sm" style="bottom:5%;left:20%;animation-delay:-1.5s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 154 8 196 30 196 55 C 196 80 154 102 100 102 C 92 102 84 101 76 100 C 68 113 50 124 30 132 C 42 122 50 113 55 98 C 28 90 4 75 4 55 C 4 30 46 8 100 8 Z" fill="#fff" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="32" fill="#0a0a0a" font-weight="700">Servir</text></svg></span>
-    <span class="bubble bub-sm" style="bottom:14%;left:38%;animation-delay:-4.5s"><svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg"><path d="M 35 70 C 18 72 14 50 32 42 C 28 22 56 18 68 30 C 75 12 108 12 118 28 C 134 18 162 26 158 46 C 178 48 182 70 165 78 C 182 88 178 110 156 110 C 158 128 128 132 116 118 C 108 132 78 132 68 116 C 48 122 26 108 36 92 C 18 88 18 68 35 70 Z" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><circle cx="78" cy="130" r="6.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.8"/><circle cx="62" cy="146" r="4.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.5"/><text x="100" y="88" text-anchor="middle" font-size="55" fill="#0a0a0a" font-weight="bold">✝</text></svg></span>
-    <span class="bubble bub-md" style="bottom:6%;right:38%;animation-delay:-9.5s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z" fill="#ffe8c2" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="30" fill="#0a0a0a" font-weight="700">Cuidar</text></svg></span>
-    <span class="bubble bub-sm" style="bottom:15%;right:21%;animation-delay:-3.5s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z" fill="#ffb088" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="34" fill="#0a0a0a" font-weight="700">Amar</text></svg></span>
-    <span class="bubble bub-md" style="bottom:4%;right:4%;animation-delay:-6.5s"><svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z" fill="#fff" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="32" fill="#0a0a0a" font-weight="700">Servir</text></svg></span>
   </div>
   <div class="gate-box">
     <div class="gate-logo"><img src="logo.png?v=2" alt="Logo Igreja Hermom"></div>
