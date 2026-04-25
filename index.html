@@ -356,6 +356,17 @@ body.adm .gate, body.lead .gate, body.pas .gate{display:none}
 </style>
 </head>
 <body>
+<script>
+// Aplica classe de sessão sincronamente (antes do gate ser renderizado) para evitar flash
+(function(){
+  try{
+    if(localStorage.getItem('hermom_admin')==='1') document.body.classList.add('adm');
+    else if(localStorage.getItem('hermom_pastor')==='1') document.body.classList.add('pas');
+    else if(localStorage.getItem('hermom_leader_min')) document.body.classList.add('lead');
+  }catch(e){}
+})();
+</script>
+
 <!-- LOGIN GATE: bloqueia o app até que haja sessão (admin ou líder) -->
 <div id="loginGate" class="gate">
   <div class="gate-box">
@@ -3111,6 +3122,7 @@ window.saveReun=async function(){
     const {ref,set,update,remove}=fbMods;
     let realId=id;
     const isLegacy=id && (id.startsWith('_legacy_a_')||id.startsWith('_legacy_l_'));
+    let firstSave=false;
     if(!realId || isLegacy){
       // Cria novo registro em /reunioes (migra legacy ou cria novo)
       realId='r_'+Date.now();
@@ -3130,11 +3142,13 @@ window.saveReun=async function(){
       S.editReun._legacyListaId=null;
       document.getElementById('reunTitle').textContent='Editar Reunião';
       document.getElementById('reunDelBtn').style.display='inline-block';
+      firstSave=true;
     } else {
       await update(ref(S.db,`hermom/private/${minKey}/reunioes/${realId}`),{titulo,data,texto,atualizadoEm:Date.now()});
     }
-    toast('Reunião salva','ok');
-    closeOv('ovReun');
+    toast(firstSave?'Reunião criada — agora você pode marcar a presença na aba Lista de Presença':'Reunião salva','ok');
+    // Modal permanece aberto. Se foi a primeira gravação, mostra a aba Lista de Presença.
+    if(firstSave) switchReunTab('lista');
   }catch(e){ toast('Erro: '+e.message,'er'); }
 };
 window.deleteReun=function(){
