@@ -294,6 +294,17 @@ body:not(.adm) .rc-row{grid-template-columns:minmax(180px,1fr) auto minmax(160px
 .ro-just{color:var(--amber)}
 .ro-nm{color:var(--gray);font-weight:400}
 .ro-motivo{font-size:.78rem;color:var(--gray);font-style:italic;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reun-tabs{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:14px}
+.reun-tab{background:none;border:none;padding:10px 18px;font-family:inherit;font-size:.88rem;font-weight:600;color:var(--gray);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.reun-tab:hover{color:var(--navy)}
+.reun-tab.on{color:var(--navy);border-bottom-color:var(--gold)}
+.reun-card{background:var(--cream);border-radius:var(--rs);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.reun-card:hover{background:#fff;box-shadow:var(--shs);border-left-color:var(--gold)}
+.reun-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.reun-titulo{font-weight:600;color:var(--navy);font-size:.95rem}
+.reun-date{font-size:.78rem;color:var(--gold);font-weight:600;white-space:nowrap}
+.reun-preview{font-size:.82rem;color:var(--gray);line-height:1.4;max-height:48px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:pre-wrap;margin-bottom:6px}
+.reun-stats{font-size:.74rem;color:var(--gray);display:flex;gap:14px}
 @media(max-width:520px){
   .lt-row{grid-template-columns:1fr;grid-template-rows:auto auto auto}
   .lt-btns{grid-column:1;grid-row:2}
@@ -730,6 +741,35 @@ body.adm .gate, body.lead .gate, body.pas .gate{display:none}
     <div class="mact">
       <button class="btn btn-s" onclick="closeOv('ovConfirm')">Cancelar</button>
       <button class="btn btn-d" id="cfOk">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Reunião (Conteúdo + Lista de Presença) -->
+<div class="ov" id="ovReun">
+  <div class="mod lg">
+    <h3 id="reunTitle">Nova Reunião</h3>
+    <p class="sub">Registre a ata e marque a presença numa única reunião.</p>
+    <div class="fld row">
+      <div><label>Título</label><input id="reunTitulo" placeholder="Ex: Ensaio sábado, Reunião de planejamento..."></div>
+      <div><label>Data</label><input type="date" id="reunData"></div>
+    </div>
+    <div class="reun-tabs">
+      <button class="reun-tab on" data-tab="content" onclick="switchReunTab('content')">Conteúdo</button>
+      <button class="reun-tab" data-tab="lista" onclick="switchReunTab('lista')">Lista de Presença</button>
+    </div>
+    <div id="reunTabContent">
+      <div class="fld" style="margin:0">
+        <textarea id="reunTexto" rows="12" placeholder="Anote os pontos discutidos, decisões, próximos passos..."></textarea>
+      </div>
+    </div>
+    <div id="reunTabLista" style="display:none">
+      <div id="reunRollCall" style="max-height:380px;overflow-y:auto"></div>
+    </div>
+    <div class="mact">
+      <button class="btn btn-d left" id="reunDelBtn" onclick="deleteReun()">Excluir</button>
+      <button class="btn btn-s" onclick="closeOv('ovReun')">Fechar</button>
+      <button class="btn btn-p" id="reunSaveBtn" onclick="saveReun()">Salvar</button>
     </div>
   </div>
 </div>
@@ -1403,6 +1443,7 @@ function setupListeners(m){
     S.private=snap.val()||{};
     if(document.getElementById('tab-anotacoes').classList.contains('on')) renderAnotacoes();
     if(document.getElementById('ovListaDetail').classList.contains('on') && S.editLista) renderListaRollCall();
+    if(document.getElementById('ovReun').classList.contains('on') && S.editReun?.id && document.getElementById('reunTabLista').style.display!=='none') renderReunRollCall();
   });
 }
 
@@ -2890,59 +2931,260 @@ window.renderAnotacoes=function(){
     return;
   }
   const minData=(S.private||{})[minKey]||{};
-  const atas=minData.atas||{};
-  const listas=minData.listas||{};
+  // Une dados antigos (atas + listas) com novos (reunioes) numa visao unica
+  const reunioes={...(minData.reunioes||{})};
+  // Migra dinamicamente atas antigas para visualizacao
+  Object.entries(minData.atas||{}).forEach(([id,a])=>{
+    const newId='_legacy_a_'+id;
+    if(!reunioes[newId]) reunioes[newId]={titulo:a.titulo,data:a.data,texto:a.texto,presencas:{},_legacyAtaId:id};
+  });
+  Object.entries(minData.listas||{}).forEach(([id,l])=>{
+    // Tenta unir com reuniao existente com mesmo titulo+data
+    const match=Object.entries(reunioes).find(([,r])=>r.titulo===l.titulo && r.data===l.data);
+    if(match){
+      match[1].presencas={...(match[1].presencas||{}),...(l.presencas||{})};
+      match[1]._legacyListaId=id;
+    } else {
+      const newId='_legacy_l_'+id;
+      reunioes[newId]={titulo:l.titulo,data:l.data,texto:'',presencas:l.presencas||{},_legacyListaId:id};
+    }
+  });
   if(meta) meta.textContent=S.mins[minKey]?.nome||'';
-  // Atas
-  const atasArr=Object.entries(atas).sort((a,b)=>(b[1].data||'').localeCompare(a[1].data||''));
-  const atasHtml=atasArr.length?atasArr.map(([id,a])=>`
-    <div class="ata-card" onclick="openAta('${esc(minKey)}','${esc(id)}')">
-      <div class="ata-head">
-        <div class="ata-titulo">${esc(a.titulo||'Sem título')}</div>
-        <div class="ata-date">${fmtDateBR(a.data)}</div>
-      </div>
-      <div class="ata-preview">${esc(a.texto||'(sem conteúdo)')}</div>
-    </div>`).join(''):'<div class="empty-state">Nenhuma ata registrada. Clique em "+ Nova Ata" para começar.</div>';
-  // Listas
-  const listasArr=Object.entries(listas).sort((a,b)=>(b[1].data||'').localeCompare(a[1].data||''));
-  const listasHtml=listasArr.length?listasArr.map(([id,l])=>{
-    const presencas=l.presencas||{};
+  const reunArr=Object.entries(reunioes).sort((a,b)=>(b[1].data||'').localeCompare(a[1].data||''));
+  const reunHtml=reunArr.length?reunArr.map(([id,r])=>{
+    const presencas=r.presencas||{};
     const stats=Object.values(presencas).reduce((acc,p)=>{
       const {status}=decodeStatus(p);
       if(status==='presente') acc.p++;
       if(status&&status!=='nao_membro') acc.e++;
       return acc;
     },{p:0,e:0});
-    return `<div class="lista-card" onclick="openLista('${esc(minKey)}','${esc(id)}')">
-      <div class="lista-head">
-        <div class="lista-titulo">${esc(l.titulo||'Sem título')}</div>
-        <div class="lista-date">${fmtDateBR(l.data)}</div>
+    const preview=r.texto?esc(r.texto.substring(0,200)):'<span style="color:var(--gray);font-style:italic">(sem conteúdo registrado)</span>';
+    return `<div class="reun-card" onclick="openReun('${esc(minKey)}','${esc(id)}')">
+      <div class="reun-head">
+        <div class="reun-titulo">${esc(r.titulo||'Sem título')}</div>
+        <div class="reun-date">${fmtDateBR(r.data)}</div>
       </div>
-      <div class="lista-stats">
+      <div class="reun-preview">${preview}</div>
+      <div class="reun-stats">
+        <span>📋 ${r.texto?'Conteúdo registrado':'Sem conteúdo'}</span>
         <span>👥 ${stats.p} presentes${stats.e?` de ${stats.e} marcados`:''}</span>
       </div>
     </div>`;
-  }).join(''):'<div class="empty-state">Nenhuma lista de presença criada. Clique em "+ Nova Lista" para começar.</div>';
-
+  }).join(''):'<div class="empty-state">Nenhuma reunião registrada. Clique em "+ Nova Reunião" para começar.</div>';
   const canEdit=canEditPrivate(minKey);
-  const novaAta=canEdit?`<button class="btn btn-g btn-sm" onclick="openNewAta()">+ Nova Ata</button>`:'';
-  const novaLista=canEdit?`<button class="btn btn-g btn-sm" onclick="openNewLista()">+ Nova Lista</button>`:'';
+  const novaReun=canEdit?`<button class="btn btn-g btn-sm" onclick="openNewReun()">+ Nova Reunião</button>`:'';
   document.getElementById('anotContent').innerHTML=`
     <div class="anot-section">
       <div class="anot-section-head">
-        <h3>Atas de Reuniões <small>${atasArr.length}</small></h3>
-        ${novaAta}
+        <h3>Reuniões <small>${reunArr.length}</small></h3>
+        ${novaReun}
       </div>
-      ${atasHtml}
-    </div>
-    <div class="anot-section">
-      <div class="anot-section-head">
-        <h3>Listas de Presença <small>${listasArr.length}</small></h3>
-        ${novaLista}
-      </div>
-      ${listasHtml}
+      ${reunHtml}
     </div>
   `;
+};
+
+// REUNIÕES (combinação ata + lista numa só)
+function getReunFromState(minKey,id){
+  if(!minKey||!id) return null;
+  const md=(S.private||{})[minKey]||{};
+  if(id.startsWith('_legacy_a_')){
+    const real=id.substring('_legacy_a_'.length);
+    const a=(md.atas||{})[real]||{};
+    return {titulo:a.titulo,data:a.data,texto:a.texto,presencas:{},_legacyAtaId:real};
+  }
+  if(id.startsWith('_legacy_l_')){
+    const real=id.substring('_legacy_l_'.length);
+    const l=(md.listas||{})[real]||{};
+    return {titulo:l.titulo,data:l.data,texto:'',presencas:l.presencas||{},_legacyListaId:real};
+  }
+  return (md.reunioes||{})[id]||null;
+}
+window.openNewReun=function(){
+  const minKey=getAnotMin();
+  if(!minKey){ toast('Selecione um ministério','er'); return; }
+  if(!canEditPrivate(minKey)){ toast('Sem permissão','er'); return; }
+  S.editReun={minKey,id:null};
+  document.getElementById('reunTitle').textContent='Nova Reunião';
+  document.getElementById('reunTitulo').value='';
+  document.getElementById('reunData').value=new Date().toISOString().slice(0,10);
+  document.getElementById('reunTexto').value='';
+  document.getElementById('reunDelBtn').style.display='none';
+  document.getElementById('reunTitulo').readOnly=false;
+  document.getElementById('reunData').readOnly=false;
+  document.getElementById('reunTexto').readOnly=false;
+  document.getElementById('reunSaveBtn').style.display='inline-block';
+  switchReunTab('content');
+  showOv('ovReun');
+};
+window.openReun=function(minKey,id){
+  const r=getReunFromState(minKey,id);
+  if(!r) return;
+  S.editReun={minKey,id,_legacyAtaId:r._legacyAtaId,_legacyListaId:r._legacyListaId};
+  const canEdit=canEditPrivate(minKey);
+  document.getElementById('reunTitle').textContent=canEdit?'Editar Reunião':'Visualizar Reunião';
+  document.getElementById('reunTitulo').value=r.titulo||'';
+  document.getElementById('reunData').value=r.data||'';
+  document.getElementById('reunTexto').value=r.texto||'';
+  document.getElementById('reunTitulo').readOnly=!canEdit;
+  document.getElementById('reunData').readOnly=!canEdit;
+  document.getElementById('reunTexto').readOnly=!canEdit;
+  document.getElementById('reunDelBtn').style.display=canEdit?'inline-block':'none';
+  document.getElementById('reunSaveBtn').style.display=canEdit?'inline-block':'none';
+  switchReunTab('content');
+  showOv('ovReun');
+};
+window.switchReunTab=function(tab){
+  document.querySelectorAll('.reun-tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  document.getElementById('reunTabContent').style.display=tab==='content'?'block':'none';
+  document.getElementById('reunTabLista').style.display=tab==='lista'?'block':'none';
+  if(tab==='lista'){
+    if(!S.editReun?.id){
+      document.getElementById('reunRollCall').innerHTML='<div class="empty-state">Salve a reunião primeiro (com título e data) para marcar a presença.</div>';
+      return;
+    }
+    renderReunRollCall();
+  }
+};
+function renderReunRollCall(){
+  if(!S.editReun?.id) return;
+  const {minKey,id}=S.editReun;
+  const r=getReunFromState(minKey,id)||{};
+  const presencas=r.presencas||{};
+  const membros=S.mins[minKey]?.membros||{};
+  const sortedKeys=sortMemberEntries(Object.entries(membros)).map(([k])=>k);
+  const canEdit=canEditPrivate(minKey);
+  let p=0,e=0;
+  sortedKeys.forEach(pk=>{
+    const {status}=decodeStatus(presencas[pk]);
+    if(status&&status!=='nao_membro'){e++; if(status==='presente') p++;}
+  });
+  const taxa=e>0?Math.round((p/e)*100):null;
+  let rows='';
+  sortedKeys.forEach(pk=>{
+    const m=membros[pk]||{nome:pk.replace(/_/g,' '),role:'membro'};
+    const v=presencas[pk];
+    const {status,just}=decodeStatus(v);
+    const rl=m.role==='lider'?'Líder':m.role==='colider'?'Co-líder':'Membro';
+    const roleColor=m.role==='lider'?'var(--gold)':m.role==='colider'?'var(--navy2)':'var(--gray)';
+    const isAusenteOuJust=status==='ausente'||status==='justificado';
+    if(canEdit){
+      const justInput=isAusenteOuJust?`<input type="text" class="lt-just" placeholder="Motivo da ausência (opcional)..." value="${esc(just||'')}" onchange="setReunJust('${esc(pk)}',this.value)">`:'';
+      rows+=`<div class="lt-row">
+        <div class="lt-name">${avatarHtml(m.nome,32)}<div><div class="rc-nm">${esc(m.nome)}</div><div class="rc-rt" style="color:${roleColor}">${rl}</div></div></div>
+        <div class="lt-btns">
+          <button class="rc-btn p${status==='presente'?' on':''}" onclick="setReunStatus('${esc(pk)}','p')">Presente</button>
+          <button class="rc-btn a${status==='ausente'||status==='justificado'?' on':''}" onclick="setReunStatus('${esc(pk)}','a')">Ausente</button>
+        </div>
+        ${justInput}
+      </div>`;
+    } else {
+      let statusBlock='';
+      if(status==='presente'){ statusBlock='<div class="ro-status ro-pres">✓ Presente</div>'; }
+      else if(status==='ausente'){ statusBlock='<div class="ro-status ro-aus">✗ Ausente</div>'; }
+      else if(status==='justificado'){ statusBlock=`<div class="ro-status ro-just">⚠ Ausência justificada</div><div class="ro-motivo">"${esc(just||'sem motivo')}"</div>`; }
+      else { statusBlock='<div class="ro-status ro-nm">— Não marcado</div>'; }
+      rows+=`<div class="lt-row"><div class="lt-name">${avatarHtml(m.nome,32)}<div><div class="rc-nm">${esc(m.nome)}</div><div class="rc-rt" style="color:${roleColor}">${rl}</div></div></div><div class="lt-btns" style="flex-direction:column;align-items:flex-end;gap:2px">${statusBlock}</div></div>`;
+    }
+  });
+  document.getElementById('reunRollCall').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:6px">
+      <div style="font-size:.78rem;color:var(--gray)">${p} presentes de ${e} marcados</div>
+      ${pctHtml(taxa)}
+    </div>
+    ${rows||'<div class="empty-state">Nenhum membro neste ministério.</div>'}
+  `;
+}
+window.saveReun=async function(){
+  if(!S.editReun||!S.db) return;
+  const {minKey,id}=S.editReun;
+  if(!canEditPrivate(minKey)){ toast('Sem permissão','er'); return; }
+  const titulo=document.getElementById('reunTitulo').value.trim();
+  const data=document.getElementById('reunData').value;
+  const texto=document.getElementById('reunTexto').value;
+  if(!titulo){ toast('Informe o título','er'); return; }
+  if(!data){ toast('Informe a data','er'); return; }
+  // Forçar blur de inputs em foco para commitar onchange
+  if(document.activeElement && typeof document.activeElement.blur==='function') document.activeElement.blur();
+  try{
+    const {ref,set,update,remove}=fbMods;
+    let realId=id;
+    const isLegacy=id && (id.startsWith('_legacy_a_')||id.startsWith('_legacy_l_'));
+    if(!realId || isLegacy){
+      // Cria novo registro em /reunioes (migra legacy ou cria novo)
+      realId='r_'+Date.now();
+      const cur=getReunFromState(minKey,id)||{};
+      await set(ref(S.db,`hermom/private/${minKey}/reunioes/${realId}`),{
+        titulo,data,texto,
+        presencas:cur.presencas||{},
+        criadoEm:Date.now(),atualizadoEm:Date.now()
+      });
+      // Apaga legacy se for o caso
+      if(isLegacy){
+        if(S.editReun._legacyAtaId) await remove(ref(S.db,`hermom/private/${minKey}/atas/${S.editReun._legacyAtaId}`));
+        if(S.editReun._legacyListaId) await remove(ref(S.db,`hermom/private/${minKey}/listas/${S.editReun._legacyListaId}`));
+      }
+      S.editReun.id=realId;
+      S.editReun._legacyAtaId=null;
+      S.editReun._legacyListaId=null;
+      document.getElementById('reunTitle').textContent='Editar Reunião';
+      document.getElementById('reunDelBtn').style.display='inline-block';
+    } else {
+      await update(ref(S.db,`hermom/private/${minKey}/reunioes/${realId}`),{titulo,data,texto,atualizadoEm:Date.now()});
+    }
+    toast('Reunião salva','ok');
+    closeOv('ovReun');
+  }catch(e){ toast('Erro: '+e.message,'er'); }
+};
+window.deleteReun=function(){
+  if(!S.editReun||!S.db) return;
+  const {minKey,id}=S.editReun;
+  if(!id) return;
+  if(!canEditPrivate(minKey)) return;
+  confirmDialog('Excluir reunião','Excluir esta reunião (conteúdo + lista de presença)? Não pode ser desfeito.',async()=>{
+    try{
+      const {ref,remove}=fbMods;
+      if(id.startsWith('_legacy_a_')){
+        const real=id.substring('_legacy_a_'.length);
+        await remove(ref(S.db,`hermom/private/${minKey}/atas/${real}`));
+        if(S.editReun._legacyListaId) await remove(ref(S.db,`hermom/private/${minKey}/listas/${S.editReun._legacyListaId}`));
+      } else if(id.startsWith('_legacy_l_')){
+        const real=id.substring('_legacy_l_'.length);
+        await remove(ref(S.db,`hermom/private/${minKey}/listas/${real}`));
+      } else {
+        await remove(ref(S.db,`hermom/private/${minKey}/reunioes/${id}`));
+      }
+      toast('Reunião excluída','ok');
+      closeOv('ovReun');
+    }catch(e){ toast('Erro: '+e.message,'er'); }
+  });
+};
+window.setReunStatus=async function(pk,code){
+  if(!S.editReun||!S.db) return;
+  let {minKey,id}=S.editReun;
+  if(!id || id.startsWith('_legacy_')){ toast('Salve a reunião primeiro','er'); return; }
+  if(!canEditPrivate(minKey)) return;
+  const status=code==='p'?'presente':code==='a'?'ausente':'nao_membro';
+  try{
+    const {ref,set}=fbMods;
+    await set(ref(S.db,`hermom/private/${minKey}/reunioes/${id}/presencas/${pk}`),{status,justificativa:''});
+  }catch(e){ toast('Erro: '+e.message,'er'); }
+};
+window.setReunJust=async function(pk,text){
+  if(!S.editReun||!S.db) return;
+  const {minKey,id}=S.editReun;
+  if(!id || id.startsWith('_legacy_')){ return; }
+  if(!canEditPrivate(minKey)) return;
+  const t=(text||'').trim();
+  try{
+    const {ref,set}=fbMods;
+    if(t){
+      await set(ref(S.db,`hermom/private/${minKey}/reunioes/${id}/presencas/${pk}`),{status:'justificado',justificativa:t});
+    } else {
+      await set(ref(S.db,`hermom/private/${minKey}/reunioes/${id}/presencas/${pk}`),{status:'ausente',justificativa:''});
+    }
+  }catch(e){ toast('Erro: '+e.message,'er'); }
 };
 
 // ATAS
@@ -3195,6 +3437,10 @@ if(localStorage.getItem('hermom_admin')==='1'){
 if(localStorage.getItem('hermom_pastor')==='1' && !S.admin){
   S.pastor=true;
   document.body.classList.add('pas');
+}
+// Pre-aplica classe lead para evitar flash do gate durante carregamento (validacao real ocorre quando o listener de mins dispara)
+if(localStorage.getItem('hermom_leader_min') && !S.admin && !S.pastor){
+  document.body.classList.add('lead');
 }
 
 loadLocalSeed();
