@@ -345,7 +345,8 @@ body.pas .adm-only{display:none!important}
 html.no-session .gate{display:flex}
 .gate-box{background:var(--white);border-radius:var(--r);padding:44px 40px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center}
 .gate-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--navy);font-weight:700;line-height:1}
-.gate-sub{font-size:.78rem;color:var(--gold);font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
+.gate-tagline{font-family:'Playfair Display',serif;font-size:1rem;color:var(--gold);font-style:italic;font-weight:500;margin-top:8px;letter-spacing:.04em}
+.gate-sub{font-size:.72rem;color:var(--gray);font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:14px;padding-top:10px;border-top:1px solid var(--border)}
 .gate-text{color:var(--gray);margin:26px 0 22px;font-size:.92rem}
 .gate-btn{width:100%;margin-bottom:10px;padding:13px;font-size:.95rem}
 .gate-foot{font-size:.72rem;color:var(--gray);margin-top:18px}
@@ -388,6 +389,7 @@ html.no-session .gate{display:flex}
 <div id="loginGate" class="gate">
   <div class="gate-box">
     <div class="gate-title">Igreja Hermom</div>
+    <div class="gate-tagline">Amar · Servir · Cuidar</div>
     <div class="gate-sub">Controle de Ministérios</div>
     <p class="gate-text">Faça login para acessar o sistema.</p>
     <button class="btn btn-p gate-btn" onclick="toggleGateForm('admin')">🔒 Entrar como Administrador</button>
@@ -414,7 +416,7 @@ html.no-session .gate{display:flex}
 </div>
 
 <div class="hdr">
-  <div class="logo">Igreja Hermom <small>Controle de Ministérios</small></div>
+  <div class="logo">Igreja Hermom <small>Amar · Servir · Cuidar</small></div>
   <nav class="nav">
     <button class="nb on" onclick="ST('dashboard',this)">Dashboard</button>
     <button class="nb" onclick="ST('ministerios',this)">Ministérios</button>
