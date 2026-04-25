@@ -759,6 +759,18 @@ body.no-session .gate{display:flex}
   </div>
 </div>
 
+<!-- MODAL: Tabela de Presença (matriz membros x reuniões privadas) -->
+<div class="ov" id="ovReunMatrix">
+  <div class="mod" style="max-width:96vw;width:auto">
+    <h3 id="reunMatrixTitle">Tabela de Presença</h3>
+    <p class="sub">Visão geral de todos os membros do ministério em todas as reuniões privadas registradas.</p>
+    <div id="reunMatrixContent" style="max-height:72vh;overflow:auto"></div>
+    <div class="mact">
+      <button class="btn btn-s" onclick="closeOv('ovReunMatrix')">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Reunião (Conteúdo + Lista de Presença) -->
 <div class="ov" id="ovReun">
   <div class="mod lg">
@@ -2991,15 +3003,108 @@ window.renderAnotacoes=function(){
   }).join(''):'<div class="empty-state">Nenhuma reunião registrada. Clique em "+ Nova Reunião" para começar.</div>';
   const canEdit=canEditPrivate(minKey);
   const novaReun=canEdit?`<button class="btn btn-g btn-sm" onclick="openNewReun()">+ Nova Reunião</button>`:'';
+  const tabelaBtn=reunArr.length?`<button class="btn btn-s btn-sm" onclick="openReunMatrix()">📊 Tabela de presença</button>`:'';
   document.getElementById('anotContent').innerHTML=`
     <div class="anot-section">
       <div class="anot-section-head">
         <h3>Reuniões <small>${reunArr.length}</small></h3>
-        ${novaReun}
+        <div style="display:flex;gap:8px">${tabelaBtn}${novaReun}</div>
       </div>
       ${reunHtml}
     </div>
   `;
+};
+
+window.openReunMatrix=function(){
+  const minKey=getAnotMin();
+  if(!minKey){ toast('Selecione um ministério','er'); return; }
+  const md=(S.private||{})[minKey]||{};
+  // Combina reunioes atuais + legacy atas/listas
+  const reunioes={...(md.reunioes||{})};
+  Object.entries(md.atas||{}).forEach(([id,a])=>{
+    const newId='_legacy_a_'+id;
+    if(!reunioes[newId]) reunioes[newId]={titulo:a.titulo,data:a.data,texto:a.texto,presencas:{}};
+  });
+  Object.entries(md.listas||{}).forEach(([id,l])=>{
+    const match=Object.entries(reunioes).find(([,r])=>r.titulo===l.titulo && r.data===l.data);
+    if(match){ match[1].presencas={...(match[1].presencas||{}),...(l.presencas||{})}; }
+    else { reunioes['_legacy_l_'+id]={titulo:l.titulo,data:l.data,texto:'',presencas:l.presencas||{}}; }
+  });
+  const reunArr=Object.entries(reunioes).sort((a,b)=>(a[1].data||'').localeCompare(b[1].data||''));
+  if(!reunArr.length){ toast('Nenhuma reunião registrada','er'); return; }
+  const membros=S.mins[minKey]?.membros||{};
+  const sortedKeys=sortMemberEntries(Object.entries(membros)).map(([k])=>k);
+  if(!sortedKeys.length){ toast('Nenhum membro neste ministério','er'); return; }
+  // Cabeçalhos das datas
+  const meetCols=reunArr.map(([id,r])=>{
+    const parts=(r.data||'').split('-');
+    const dayMonth=parts.length===3?`${parts[2]}/${parts[1]}`:'';
+    const year=parts[0]||'';
+    return `<th class="c" style="font-size:.68rem">${esc(r.titulo||'').substring(0,18)}<br><span style="opacity:.7;font-weight:400">${dayMonth}</span><br><span style="opacity:.6">${year}</span></th>`;
+  }).join('');
+  // Totais por reuniao (presentes / elegiveis baseado em membros do ministerio)
+  const totals=reunArr.map(([id,r])=>{
+    const presData=r.presencas||{};
+    let p=0,e=0;
+    Object.keys(membros).forEach(pk=>{
+      const {status}=decodeStatus(presData[pk]);
+      if(status==='nao_membro') return;
+      if(status){ e++; if(status==='presente') p++; }
+    });
+    return {p,e};
+  });
+  // Linhas: cada membro com suas presencas
+  let rows='';
+  sortedKeys.forEach(pk=>{
+    const m=membros[pk]||{nome:pk.replace(/_/g,' '),role:'membro'};
+    let personP=0,personE=0;
+    const cells=reunArr.map(([id,r])=>{
+      const v=(r.presencas||{})[pk];
+      const {status,just}=decodeStatus(v);
+      if(status&&status!=='nao_membro'){personE++; if(status==='presente') personP++;}
+      let cell;
+      if(!status) cell=`<span class="ss2 e no-click">?</span>`;
+      else if(status==='presente') cell=`<span class="ss2 p no-click">✓</span>`;
+      else if(status==='ausente') cell=`<span class="ss2 a no-click">✗</span>`;
+      else if(status==='nao_membro') cell=`<span class="ss2 n no-click">—</span>`;
+      else if(status==='justificado'){
+        const short=(just||'').substring(0,10)+(just&&just.length>10?'...':'');
+        cell=`<span class="ss2 j no-click" title="${esc(just)}">${esc(short)||'justif.'}</span>`;
+      }
+      return `<td class="acl">${cell}</td>`;
+    }).join('');
+    const rl=m.role==='lider'?'<span style="color:var(--gold);font-size:.68rem;font-weight:700">Líder</span>':m.role==='colider'?'<span style="color:var(--navy2);font-size:.68rem">Co-líder</span>':'';
+    const taxa=personE>0?Math.round((personP/personE)*100):null;
+    rows+=`<tr>
+      <td><div class="an">${esc(m.nome)}${m.badge?' ●':''}</div>${rl?'<div>'+rl+'</div>':''}</td>
+      ${cells}
+      <td class="acl">${pctHtml(taxa)}</td>
+    </tr>`;
+  });
+  // Linha de totais
+  const totRow=totals.map(t=>{
+    const tx=t.e>0?Math.round((t.p/t.e)*100):null;
+    return `<td class="acl"><div class="mt-c"><div class="mt-n">${t.p} de ${t.e}</div><div class="mt-s">presentes / elegíveis</div><div style="margin-top:3px">${pctHtml(tx)}</div></div></td>`;
+  }).join('');
+  document.getElementById('reunMatrixContent').innerHTML=`
+    <div class="att-w">
+      <table class="att">
+        <thead><tr>
+          <th>${esc(S.mins[minKey].nome)}</th>
+          ${meetCols}
+          <th class="c">Taxa</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td><strong>Totais</strong></td>
+          ${totRow}
+          <td></td>
+        </tr></tfoot>
+      </table>
+    </div>
+  `;
+  document.getElementById('reunMatrixTitle').textContent=`${S.mins[minKey].nome} — Tabela de Presença`;
+  showOv('ovReunMatrix');
 };
 
 // REUNIÕES (combinação ata + lista numa só)
