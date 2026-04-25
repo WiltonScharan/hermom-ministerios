@@ -38,6 +38,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:#faf7f2;color:#1a2744;min
   --r:12px;--rs:8px
 }
 .hdr{background:var(--navy);padding:0 28px;display:flex;align-items:center;gap:20px;height:60px;box-shadow:0 2px 16px rgba(0,0,0,.25);position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-logo{width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#ff6b2c;box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.15)}
+.brand-logo img{width:100%;height:100%;object-fit:cover;display:block;transform:scale(1.18);transform-origin:center}
 .logo{font-family:'Playfair Display',serif;color:var(--gold2);font-size:1.1rem;font-weight:700;white-space:nowrap}
 .logo small{font-family:'IBM Plex Sans',sans-serif;font-size:.75rem;font-weight:300;color:rgba(255,255,255,.4);margin-left:8px}
 .nav{display:flex;gap:2px;flex-wrap:wrap}
@@ -416,7 +419,10 @@ html.no-session .gate{display:flex}
 </div>
 
 <div class="hdr">
-  <div class="logo">Igreja Hermom <small>Amar · Servir · Cuidar</small></div>
+  <div class="brand">
+    <div class="brand-logo"><img src="logo.png?v=2" alt="Logo Igreja Hermom"></div>
+    <div class="logo">Igreja Hermom <small>Amar · Servir · Cuidar</small></div>
+  </div>
   <nav class="nav">
     <button class="nb on" onclick="ST('dashboard',this)">Dashboard</button>
     <button class="nb" onclick="ST('ministerios',this)">Ministérios</button>
