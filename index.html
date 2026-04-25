@@ -401,61 +401,81 @@ html.no-session .gate{display:flex}
   }catch(e){}
 })();
 
-// Spawner aleatorio de baloes na tela de login
+// Spawner de baloes na tela de login (sistema de slots fixos = sem sobreposicao)
 (function(){
   const SPEECH_L='M 100 8 C 154 8 196 30 196 55 C 196 80 154 102 100 102 C 92 102 84 101 76 100 C 68 113 50 124 30 132 C 42 122 50 113 55 98 C 28 90 4 75 4 55 C 4 30 46 8 100 8 Z';
   const SPEECH_R='M 100 8 C 46 8 4 30 4 55 C 4 80 46 102 100 102 C 108 102 116 101 124 100 C 132 113 150 124 170 132 C 158 122 150 113 145 98 C 172 90 196 75 196 55 C 196 30 154 8 100 8 Z';
   const THOUGHT='M 35 70 C 18 72 14 50 32 42 C 28 22 56 18 68 30 C 75 12 108 12 118 28 C 134 18 162 26 158 46 C 178 48 182 70 165 78 C 182 88 178 110 156 110 C 158 128 128 132 116 118 C 108 132 78 132 68 116 C 48 122 26 108 36 92 C 18 88 18 68 35 70 Z';
   const WORDS=['Amar','Servir','Cuidar'];
   const COLORS=['#fff','#fff5e0','#ffe8c2','#ffd4b8','#ffb088'];
-  const SIZES=[55,62,70,78,88];
-  const ZONES=[
-    {top:[2,15],x:[2,38]},{top:[2,15],x:[55,95]},
-    {top:[20,75],x:[1,28]},{top:[20,75],x:[68,95]},
-    {bottom:[2,15],x:[2,40]},{bottom:[2,15],x:[55,95]}
-  ];
-  function rand(a){return a[0]+Math.random()*(a[1]-a[0]);}
+  // Slots fixos: cada um eh uma "vaga" que so pode ter 1 balao por vez
+  // Cobertura: topo, rodape, laterais externas e zona entre card e bordas
+  const SLOTS=[
+    // topo
+    {top:4,left:4},{top:9,left:18},{top:4,left:34},{top:9,left:50},{top:4,left:66},{top:9,left:82},
+    // lateral esquerda externa
+    {top:25,left:2},{top:48,left:3},{top:70,left:2},
+    // entre card e borda esquerda
+    {top:32,left:22},{top:58,left:23},
+    // entre card e borda direita
+    {top:32,right:22},{top:58,right:23},
+    // lateral direita externa
+    {top:25,right:2},{top:48,right:3},{top:70,right:2},
+    // rodape
+    {bottom:4,left:4},{bottom:9,left:18},{bottom:4,left:34},{bottom:9,left:50},{bottom:4,left:66},{bottom:9,left:82}
+  ].map(s=>({...s,busy:false}));
+  const MAX_ACTIVE=10;
+  function rand(min,max){return min+Math.random()*(max-min);}
   function pick(a){return a[Math.floor(Math.random()*a.length)];}
   function speech(t,c,r){
     const p=r?SPEECH_R:SPEECH_L,fs=t.length>5?30:34;
-    return '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="'+p+'" fill="'+c+'" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="'+fs+'" fill="#0a0a0a" font-weight="700">'+t+'</text></svg>';
+    return '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="'+p+'" fill="'+c+'" stroke="#0a0a0a" stroke-width="3.5" stroke-linejoin="round"/><text x="100" y="68" text-anchor="middle" font-family="Playfair Display,Georgia,serif" font-style="italic" font-size="'+fs+'" fill="#0a0a0a" font-weight="700">'+t+'</text></svg>';
   }
   function thought(){
-    return '<svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg"><path d="'+THOUGHT+'" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="4" stroke-linejoin="round"/><circle cx="78" cy="130" r="6.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.8"/><circle cx="62" cy="146" r="4.5" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.5"/><text x="100" y="88" text-anchor="middle" font-size="55" fill="#0a0a0a" font-weight="bold">✝</text></svg>';
+    return '<svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg"><path d="'+THOUGHT+'" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="3.5" stroke-linejoin="round"/><circle cx="78" cy="130" r="6" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.5"/><circle cx="62" cy="146" r="4" fill="#ff6b2c" stroke="#0a0a0a" stroke-width="2.2"/><text x="100" y="88" text-anchor="middle" font-size="55" fill="#0a0a0a" font-weight="bold">✝</text></svg>';
   }
-  let busyZones=[];
-  function spawn(){
+  function spawnInSlot(slot){
     const c=document.querySelector('.gate-bubbles');
     if(!c) return;
-    if(document.documentElement.classList.contains('has-session')) return;
-    // escolhe zona livre (evita aglomeracao no mesmo lugar)
-    const free=ZONES.filter(z=>!busyZones.includes(z));
-    const zone=free.length?pick(free):pick(ZONES);
-    busyZones.push(zone);
-    setTimeout(()=>{busyZones=busyZones.filter(z=>z!==zone);},2500);
+    slot.busy=true;
     const isCross=Math.random()<0.22;
-    const size=pick(SIZES);
+    const size=Math.round(rand(58,80));
     const isRight=Math.random()<0.5;
-    const drift=(Math.random()*50-25);
+    const drift=rand(-18,18);
     const b=document.createElement('span');
     b.className='bubble';
-    let s='width:'+size+'px;left:'+rand(zone.x)+'%;';
-    if(zone.top) s+='top:'+rand(zone.top)+'%;';
-    else s+='bottom:'+rand(zone.bottom)+'%;';
+    let s='width:'+size+'px;';
+    if(slot.left!=null) s+='left:'+slot.left+'%;';
+    if(slot.right!=null) s+='right:'+slot.right+'%;';
+    if(slot.top!=null) s+='top:'+slot.top+'%;';
+    else s+='bottom:'+slot.bottom+'%;';
     s+='--drift-x:'+drift+'px;';
     b.style.cssText=s;
     b.innerHTML=isCross?thought():speech(pick(WORDS),pick(COLORS),isRight);
     c.appendChild(b);
-    setTimeout(()=>{b.remove();},9000);
+    // libera slot um pouco antes do balao sumir totalmente, pra dar tempo do proximo nascer noutro lugar
+    setTimeout(()=>{slot.busy=false;},6500);
+    setTimeout(()=>{b.remove();},8500);
+  }
+  function tick(){
+    if(document.documentElement.classList.contains('has-session')){
+      clearInterval(iv);iv=null;
+      document.querySelectorAll('.bubble').forEach(b=>b.remove());
+      SLOTS.forEach(s=>s.busy=false);
+      return;
+    }
+    const active=SLOTS.filter(s=>s.busy).length;
+    if(active>=MAX_ACTIVE) return;
+    const free=SLOTS.filter(s=>!s.busy);
+    if(!free.length) return;
+    spawnInSlot(pick(free));
   }
   let iv;
   function start(){
     if(iv) return;
-    for(let i=0;i<10;i++) setTimeout(spawn,i*280);
-    iv=setInterval(()=>{
-      if(document.documentElement.classList.contains('has-session')){clearInterval(iv);iv=null;document.querySelectorAll('.bubble').forEach(b=>b.remove());return;}
-      spawn();
-    },450);
+    // popula inicial gradualmente (8 baloes em ~3s)
+    for(let i=0;i<8;i++) setTimeout(tick,i*350+Math.random()*200);
+    iv=setInterval(tick,650);
   }
   if(document.readyState!=='loading') start();
   else document.addEventListener('DOMContentLoaded',start);
